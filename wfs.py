@@ -392,8 +392,8 @@ def add_films(films_lookup=None, get_local=False, get_all=False):
         if getattr(film, 'writing', None) and not getattr(film, 'basis', None):
             creators = list(filter(lambda x: any(note in work_format_words for note in x.notes), film.writing))
             if creators:
-                formats = [creator.notes for creator in creators]
-                setattr(film, 'basis', Work(creators=[creator.detail for creator in creators], work=film.titles[0].detail, formats=[note for creator in creators for note in creator.notes]))
+                formats = [note for creator in creators for note in creator.notes if note in work_format_words]
+                setattr(film, 'basis', Work(creators=[creator.detail for creator in creators], work=film.titles[0].detail, formats=formats))
 
         films.append(film)
 
