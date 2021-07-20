@@ -14,7 +14,7 @@ work_format_words = ['novelette', 'novella', 'novel', 'teleplay', 'play', 'short
 
 
 def get_film_data():
-    with open('./scraper/films_artblog.json', encoding='ISO-8859-1') as f:
+    with open('./films_artblog.json', encoding='ISO-8859-1') as f:
         return json.load(f)
 
 
@@ -28,7 +28,7 @@ def get_film_page(film, get_local=False, get_all=False):
     if get_all:
         datum_film = film
     elif get_local:
-        with open(f'./scraper/html_files/{film}.html', 'r', encoding='utf-8') as f:
+        with open(f'./html_files/{film}.html', 'r', encoding='utf-8') as f:
             return f.read()
     else:
         data = get_film_data()
@@ -371,6 +371,8 @@ def add_films(films_lookup=None, get_local=False, get_all=False):
     films = []
     if get_all:
         films_lookup = get_film_data()
+    if not films_lookup:
+        return
     for film_lookup in films_lookup:
         film_page = get_film_page(film=film_lookup, get_local=get_local, get_all=get_all)
         if not film_page:
@@ -399,9 +401,9 @@ def add_films(films_lookup=None, get_local=False, get_all=False):
 
     if not films:
         return
-    with open('./scraper/test2.json', 'w', encoding='utf-8') as test:
+    with open('./test_output.json', 'w', encoding='utf-8') as test:
         json.dump(films, test, ensure_ascii=False, cls=FilmEncoder)
 
-
-films_test = ["the_killers", "scarlet_street", "too_late_for_tears", "the_reckless_moment", "the_pawnbroker", "the_lady_from_shanghai", "la_nuit_du_carrefour"]
+films_test = []
+films_test_2 = ["the_killers", "scarlet_street", "too_late_for_tears", "the_reckless_moment", "the_pawnbroker", "the_lady_from_shanghai", "la_nuit_du_carrefour"]
 add_films(films_lookup=films_test, get_local=True)
