@@ -120,5 +120,8 @@ class Scraper:
 
 
     def _output_films(self):
+        output_dir = os.path.dirname(self.output_path)
+        if not os.path.exists(output_dir):
+            os.mkdir(output_dir)
         with open(self.output_path, 'w', encoding='utf-8') as f:
             json.dump(self.films, f, ensure_ascii=False, cls=FilmEncoder)

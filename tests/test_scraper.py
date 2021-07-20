@@ -10,5 +10,4 @@ sys.path[0:0] = [src_dir, wfs_dir]
 
 from wfs.wfs import Scraper
 test_scraper = Scraper(choices=['scarlet street'], from_local=True)
-test_scraper.set_soups()
-print(test_scraper.soups[0].title)
+test_scraper.set_films()
