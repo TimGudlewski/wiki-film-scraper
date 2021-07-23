@@ -13,9 +13,9 @@ class Detail:
     def set_detail_set_notes(self, line):
         parens_re = regexes.get_parens_re(line)
         while parens_re:
-            parens = parens_re.group()
-            self.notes.append(parens[1:-1].strip())
-            line = line.replace(parens, '').strip()
+            parens = parens_re.group(1).strip()
+            self.notes.append(parens.strip())
+            line = line.replace(parens_re.group(), '').strip()
             parens_re = regexes.get_parens_re(line)
         self.detail = line
 
@@ -27,9 +27,10 @@ class Detail:
         if link:
             link_text = link.text.strip()
         if divider:
-            [name, role] = [elm.strip() for elm in self.detail.split(divider)]
-            self.detail = name
-            self.role = role
+            divider_idx = self.detail.index(divider)
+            role_idx = divider_idx + len(divider)
+            self.role = self.detail[role_idx:]
+            self.detail = self.detail[:divider_idx]
         elif link and general.index_of(link_text, self.detail) == 0:
             self.role = self.detail.replace(link_text, '').strip()
             self.detail = link_text

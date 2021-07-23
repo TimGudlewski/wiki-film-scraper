@@ -1,6 +1,7 @@
 import os, requests, json, inspect, sys
 
 from helpers.general import depunct
+from googlesearch import search as gsearch
 from pathlib import Path
 from bs4 import BeautifulSoup
 from film import Film
@@ -25,14 +26,12 @@ class Scraper:
     choices = None,
     from_local = False,
     get_all = False,
-    search_choices = False,
     search_path = os.path.join(wfs_dir, 'search', 'films_artblog.json'),
     output_path = os.path.join(Path.home(), 'wfs_output', 'example.json'),
     html_dir = os.path.join(wfs_dir, 'html')) -> None:
         self.choices = choices
         self.from_local = from_local
         self.get_all = get_all
-        self.search_choices = search_choices
         self.search_path = search_path
         self.output_path = output_path
         self.html_dir = html_dir
@@ -65,27 +64,17 @@ class Scraper:
             with open(choice_filepath, 'r', encoding='utf-8') as f:
                 self.soup = BeautifulSoup(f.read(), 'html.parser')
         else:
-            if self.get_all or self.search_choices:
+            if isinstance(self.choice, dict):
                 search_film = self.choice
             else:
                 search_film = self._get_search_film()
-            query_name = search_film['name'].strip().replace(' ', '+')
-            query_year = str(search_film['year']).strip()
-            query = f'{query_name}+{query_year}+film'
-            search_url = f'https://en.wikipedia.org/w/index.php?search={query}&ns0=1'
-            search_req = requests.get(search_url, headers)
-            search_soup = BeautifulSoup(search_req.content, 'html.parser')
-            result_div = search_soup.find('div', class_='mw-search-result-heading')
-            if result_div:
-                result_a = result_div.find('a')
-                if result_a:
-                    result_url = result_a['href']
-                    req = requests.get(f'https://en.wikipedia.org{result_url}', headers)
-                    self.soup = BeautifulSoup(req.content, 'html.parser')
-                else:
-                    sys.exit(f'Result url not found on page {search_url}')
-            else:
-                sys.exit(f'Result not found on page {search_url}')
+            query = f"{search_film['name']} {search_film['year']} film wikipedia"
+            search_results = gsearch(query, num_results=1)
+            print(search_results)
+            req = requests.get(search_results.pop(0), headers)
+            self.soup = BeautifulSoup(req.content, 'html.parser')
+            if len(search_results):
+                setattr(self, f"{search_film['name']} - alt links", search_results)
     
 
     def _get_search_film(self):
@@ -131,10 +120,9 @@ class Scraper:
                     setattr(film, 'basis', Work(creators=[creator.detail for creator in creators], work=film.titles[0].detail, formats=formats))
 
             self.films.append(film)
-        self._output_films()
 
 
-    def _output_films(self):
+    def save_films(self):
         output_dir = os.path.dirname(self.output_path)
         if not os.path.exists(output_dir):
             os.mkdir(output_dir)

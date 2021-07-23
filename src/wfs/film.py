@@ -1,6 +1,7 @@
 from detail import Detail
 from work import Work
-from helpers import regexes, info
+from helpers import regexes
+from helpers.info import labels_mapping_table
 
 class Film:
     def __init__(self, soup) -> None:
@@ -20,7 +21,7 @@ class Film:
         first_i_tag = summary_tag.find('i')
         if not first_i_tag:
             b_tag = summary_tag.find('b')
-            if b_tag:
+            if b_tag and b_tag.text in summary[:50]:
                 self.titles.append(Detail(detail=b_tag.text.strip(), note='bold'))
             else:
                 self.titles.append(Detail(detail=summary[:50], note='summary'))
@@ -30,11 +31,13 @@ class Film:
         self.titles.append(Detail(detail=main_title, note='main'))
         main_title_parens_re = regexes.get_parens_re(summary[len(main_title) + 1:], start=True)
         if main_title_parens_re:
+            main_title_parens = main_title_parens_re.group()
             next_i_tag = first_i_tag.find_next('i')
             if next_i_tag:
                 next_i = next_i_tag.text.strip()
-                while next_i in main_title_parens_re.group():
+                while next_i in main_title_parens:
                     self.titles.append(Detail(detail=next_i, note='alt'))
+                    main_title_parens = main_title_parens.replace(next_i, '')
                     next_i_tag = next_i_tag.find_next('i')
                     next_i = next_i_tag.text.strip()
 
@@ -73,13 +76,17 @@ class Film:
                 self.cast.append(credit)
 
 
+    def set_dates(self, infobox):
+        dates_label_tag = infobox.find('th', class_='infobox-label', string='Release date')
+
+
     def set_infobox_details(self, infobox):
         label_tags = infobox.find_all('th', class_='infobox-label')
         for label_tag in label_tags:
             label = label_tag.text.strip()
-            if label not in [*info.labels_mapping_table]:
+            if label not in [*labels_mapping_table]:
                 continue
-            label = info.labels_mapping_table[label]
+            label = labels_mapping_table[label]
             details_tag = label_tag.find_next('td')
             lines = [str(line) for line in details_tag.stripped_strings if line != '"']
 

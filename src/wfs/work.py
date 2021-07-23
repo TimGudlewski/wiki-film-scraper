@@ -23,7 +23,7 @@ class Work:
         quote = ''
         quote_re = regexes.get_quote_re(basis_tag.text)
         if quote_re:
-            quote = quote_re.group()[1:-1]
+            quote = quote_re.group(1).strip()
         lines_schema = {}
         for i in range(len(lines)):
             lines_schema[i] = []

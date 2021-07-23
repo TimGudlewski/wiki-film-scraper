@@ -17,7 +17,7 @@ def main(choices_options):
 
         start_time = time.monotonic()
 
-        test_scraper = Scraper(choices=choices_main)
+        test_scraper = Scraper(choices=choices_main, from_local=True)
         test_scraper.set_films()
         test_scraper.save_films()
 
@@ -26,10 +26,7 @@ def main(choices_options):
 
 
 test_choices_options = [
-    'nora prentiss',
-    'odd man out',
-    'out of the past',
-    'drunken angel',
-    'la nuit du carrefour'
+    'journey into fear',
+    'the pawnbroker'
 ]
 main(test_choices_options)
