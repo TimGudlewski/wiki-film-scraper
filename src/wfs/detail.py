@@ -1,6 +1,8 @@
 from helpers import regexes, general
 
+
 class Detail:
+
     def __init__(self, line=None, detail=None, note=None) -> None:
         self.detail = detail
         self.notes = []

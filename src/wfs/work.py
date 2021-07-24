@@ -2,17 +2,17 @@ from helpers import regexes, general, info
 
 
 class Work:
-    def __init__(self, basis_tag=None, lines=None, film_title=None, work=None, formats=None, years=None, creators=None, sources=None) -> None:
+    def __init__(self, basis_tag=None, film_title=None, work=None, formats=None, years=None, creators=None, sources=None) -> None:
         self.work = work
         self.formats = formats or []
         self.years = years or []
         self.creators = creators or []
         self.sources = sources or []
         if basis_tag:
-            self.extract_attrs(basis_tag, lines, film_title)
+            self.extract_attrs(basis_tag, film_title)
 
 
-    def extract_attrs(self, basis_tag, lines, film_title):
+    def extract_attrs(self, basis_tag, film_title):
         italics = []
         italics_tags = basis_tag.find_all('i')
         if italics_tags:
@@ -24,6 +24,8 @@ class Work:
         quote_re = regexes.get_quote_re(basis_tag.text)
         if quote_re:
             quote = quote_re.group(1).strip()
+
+        lines = general.get_details_lines(basis_tag)
         lines_schema = {}
         for i in range(len(lines)):
             lines_schema[i] = []

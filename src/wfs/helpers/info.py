@@ -39,9 +39,7 @@ labels_mapping_table = {
     'Distributed by': "distribution",
     'Music by': "music",
     'Running time': "length",
-    'Based on': "basis",
     'Cinematography': "cinematography",
     'Box office': "sales",
     'Budget': "budget",
-    'Release date': "dates"
 }

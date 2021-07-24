@@ -2,6 +2,8 @@ from detail import Detail
 from work import Work
 from helpers import regexes
 from helpers.info import labels_mapping_table
+from helpers.general import join_parens, get_details_lines, add_colon_notes, get_details_tag
+
 
 class Film:
     def __init__(self, soup) -> None:
@@ -28,7 +30,7 @@ class Film:
             return
 
         main_title = first_i_tag.text.strip()
-        self.titles.append(Detail(detail=main_title, note='main'))
+        self.titles.insert(0, Detail(detail=main_title, note='main'))
         main_title_parens_re = regexes.get_parens_re(summary[len(main_title) + 1:], start=True)
         if main_title_parens_re:
             main_title_parens = main_title_parens_re.group()
@@ -77,7 +79,25 @@ class Film:
 
 
     def set_dates(self, infobox):
-        dates_label_tag = infobox.find('th', class_='infobox-label', string='Release date')
+        dates_tag = get_details_tag(infobox, 'Release date')
+        if not dates_tag:
+            return
+        lines = get_details_lines(dates_tag)
+        join_parens(lines)
+        setattr(self, 'dates', [])
+        for line in lines:
+            date = Detail(line=line)
+            if date.notes:
+                for i, note in enumerate(date.notes):
+                    note_isodate_re = regexes.get_isodate_re(note)
+                    if note_isodate_re:
+                        date.detail = note_isodate_re.group()
+                        date.notes.pop(i)
+            else:
+                detail_isodate_re = regexes.get_isodate_re(date.detail)
+                if detail_isodate_re:
+                    date.detail = detail_isodate_re.group()
+            self.dates.append(date)
 
 
     def set_infobox_details(self, infobox):
@@ -88,27 +108,8 @@ class Film:
                 continue
             label = labels_mapping_table[label]
             details_tag = label_tag.find_next('td')
-            lines = [str(line) for line in details_tag.stripped_strings if line != '"']
+            lines = get_details_lines(details_tag)
 
-            if label == 'basis':
-                self.basis = Work(details_tag, lines, self.titles[0].detail)
-                continue
-            else:
-                setattr(self, label, [])
-                credits = getattr(self, label)
-            i = 0
-            while i < len(lines):
-                if lines[i][-1] == ':':
-                    note = lines.pop(i)[:-1].lower()
-                    for j in range(i, len(lines)):
-                        lines[j] += f'({note})'
-                while i + 1 < len(lines) and lines[i + 1][0] == '(':
-                    lines[i] += lines.pop(i + 1)
-                    while lines[i][-1] != ')':
-                        try:
-                            lines[i] += ' ' + lines.pop(i + 1)
-                        except IndexError:
-                            lines[i] += ')'
-                if lines[i][0] not in [',', '[']:
-                    credits.append(Detail(line=lines[i]))
-                i += 1
+            add_colon_notes(lines)
+            join_parens(lines)
+            setattr(self, label, [Detail(line=line) for line in lines])

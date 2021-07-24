@@ -1,6 +1,6 @@
 import os, requests, json, inspect, sys
 
-from helpers.general import depunct
+from helpers.general import depunct, get_details_tag
 from googlesearch import search as gsearch
 from pathlib import Path
 from bs4 import BeautifulSoup
@@ -103,21 +103,36 @@ class Scraper:
             film.set_titles(self.soup)
 
             self._set_infobox_set_cast_heading()
+
+            if not self.infobox:
+                self.films.append(f'no infobox')
+                continue
+
             if self.cast_heading:
                 film.set_cast(self.cast_heading)
-            elif self.infobox:
+            else:
                 starring_tag = self.infobox.find('th', string="Starring")
                 if starring_tag:
                     starring_strings = starring_tag.find_next('td').stripped_strings
                     for actor in starring_strings:
                         film.cast.append(Detail(line=str(actor)))
+                else:
+                    film.cast = 'no cast heading, no starring in infobox'
 
+            film.set_dates(self.infobox)
+            basis_tag = get_details_tag(self.infobox, 'Based on')
+            if basis_tag:
+                setattr(film, 'basis', Work(basis_tag, film.titles[0].detail))
             film.set_infobox_details(self.infobox)
             if getattr(film, 'writing', None) and not getattr(film, 'basis', None):
                 creators = list(filter(lambda x: any(note in work_format_words for note in x.notes), film.writing))
                 if creators:
-                    formats = [note for creator in creators for note in creator.notes if note in work_format_words]
-                    setattr(film, 'basis', Work(creators=[creator.detail for creator in creators], work=film.titles[0].detail, formats=formats))
+                    work_kwargs = dict(
+                        creators = [creator.detail for creator in creators],
+                        work = film.titles[0].detail,
+                        formats = [note for creator in creators for note in creator.notes if note in work_format_words]
+                        )
+                    setattr(film, 'basis', Work(**work_kwargs))
 
             self.films.append(film)
 
