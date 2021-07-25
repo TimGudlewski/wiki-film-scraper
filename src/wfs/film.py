@@ -1,16 +1,16 @@
 from detail import Detail
 from work import Work
 from helpers import regexes
-from helpers.info import labels_mapping_table
 from helpers.general import join_parens, get_details_lines, add_colon_notes, get_details_tag
 
 
 class Film:
+
     def __init__(self, soup) -> None:
         page_title = soup.title.text
         if len(page_title) > 12:
             page_title = page_title[:-12]
-        self.titles = [Detail(line=page_title, note='page')]
+        self.titles = [Detail(raw_detail=page_title, note='page')]
         self.cast = []
 
 
@@ -73,7 +73,7 @@ class Film:
                 # Beautiful Soup appends the text of its child lis to it, separating them with \n.
                 # The operation above should enclose the text of a nested li in parens, which will then be converted into a note.
 
-                credit = Detail(line=li_text)
+                credit = Detail(raw_detail=li_text)
                 credit.split_actor_detail(li)
                 self.cast.append(credit)
 
@@ -86,7 +86,7 @@ class Film:
         join_parens(lines)
         setattr(self, 'dates', [])
         for line in lines:
-            date = Detail(line=line)
+            date = Detail(raw_detail=line)
             if date.notes:
                 for i, note in enumerate(date.notes):
                     note_isodate_re = regexes.get_isodate_re(note)
@@ -100,16 +100,16 @@ class Film:
             self.dates.append(date)
 
 
-    def set_infobox_details(self, infobox):
+    def set_infobox_details(self, infobox, mapping_table):
         label_tags = infobox.find_all('th', class_='infobox-label')
         for label_tag in label_tags:
             label = label_tag.text.strip()
-            if label not in [*labels_mapping_table]:
+            if label not in [*mapping_table]:
                 continue
-            label = labels_mapping_table[label]
+            label = mapping_table[label]
             details_tag = label_tag.find_next('td')
             lines = get_details_lines(details_tag)
 
             add_colon_notes(lines)
             join_parens(lines)
-            setattr(self, label, [Detail(line=line) for line in lines])
+            setattr(self, label, [Detail(raw_detail=line) for line in lines])

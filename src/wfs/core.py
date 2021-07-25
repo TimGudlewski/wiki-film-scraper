@@ -7,39 +7,58 @@ from bs4 import BeautifulSoup
 from film import Film
 from work import Work
 from detail import Detail
-from helpers.info import headers, work_format_words
+from helpers.info import headers, work_format_words, labels_mapping_table
 
 wfs_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
 
+class Choice:
+
+    def __init__(self, name: str, year=None) -> None:
+        self.name = name
+        self.year = str(year) or None
+    
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class FilmEncoder(json.JSONEncoder):
+
     def default(self, o):
         return o.__dict__
 
 
 class Scraper:
-    soup = choice = infobox = cast_heading = None
+
+    soup = choice = choices = infobox = cast_heading = None
     films = []
 
 
     def __init__(self,
-    choices = None,
+    choices_input = None,
     from_local = False,
     get_all = False,
     search_path = os.path.join(wfs_dir, 'search', 'films_artblog.json'),
     output_path = os.path.join(Path.home(), 'wfs_output', 'example.json'),
+    mapping_table = labels_mapping_table,
     html_dir = os.path.join(wfs_dir, 'html')) -> None:
-        self.choices = choices
         self.from_local = from_local
         self.get_all = get_all
         self.search_path = search_path
         self.output_path = output_path
+        self.mapping_table = mapping_table
         self.html_dir = html_dir
-        if not choices and not get_all:
+        if not choices_input and not get_all:
             msg = "Please initialize Scraper instance with a value for choices, or set get_all to True."
             sys.exit(msg)
         if get_all:
             self._set_choices()
+        elif choices_input:
+            if isinstance(self.choices[0], dict):
+                self.choices = [Choice(**choice) for choice in choices_input]
+            else:
+                self.choices = choices_input
     
 
     def _get_search_file(self):
@@ -64,10 +83,10 @@ class Scraper:
             with open(choice_filepath, 'r', encoding='utf-8') as f:
                 self.soup = BeautifulSoup(f.read(), 'html.parser')
         else:
-            if isinstance(self.choice, dict):
+            if isinstance(self.choice, Choice):
                 search_film = self.choice
             else:
-                search_film = self._get_search_film()
+                search_film = Choice(**self._get_search_film())
             query = f"{search_film['name']} {search_film['year']} film wikipedia"
             search_results = gsearch(query, num_results=1)
             print(search_results)
@@ -81,6 +100,7 @@ class Scraper:
         for film in self._get_search_file():
             if depunct(film['name']).lower() == depunct(self.choice).lower():
                 return film
+        sys.exit()
 
 
     def _set_infobox_set_cast_heading(self):
@@ -115,7 +135,7 @@ class Scraper:
                 if starring_tag:
                     starring_strings = starring_tag.find_next('td').stripped_strings
                     for actor in starring_strings:
-                        film.cast.append(Detail(line=str(actor)))
+                        film.cast.append(Detail(raw_detail=str(actor)))
                 else:
                     film.cast = 'no cast heading, no starring in infobox'
 
@@ -123,7 +143,7 @@ class Scraper:
             basis_tag = get_details_tag(self.infobox, 'Based on')
             if basis_tag:
                 setattr(film, 'basis', Work(basis_tag, film.titles[0].detail))
-            film.set_infobox_details(self.infobox)
+            film.set_infobox_details(self.infobox, self.mapping_table)
             if getattr(film, 'writing', None) and not getattr(film, 'basis', None):
                 creators = list(filter(lambda x: any(note in work_format_words for note in x.notes), film.writing))
                 if creators:

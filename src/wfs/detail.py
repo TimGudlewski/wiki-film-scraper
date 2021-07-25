@@ -3,23 +3,23 @@ from helpers import regexes, general
 
 class Detail:
 
-    def __init__(self, line=None, detail=None, note=None) -> None:
+    def __init__(self, raw_detail=None, detail=None, note=None) -> None:
         self.detail = detail
         self.notes = []
         if note:
             self.notes.append(note)
-        if line:
-            self.set_detail_set_notes(line)
+        if raw_detail:
+            self.set_detail_set_notes(raw_detail)
 
 
-    def set_detail_set_notes(self, line):
-        parens_re = regexes.get_parens_re(line)
+    def set_detail_set_notes(self, raw_detail):
+        parens_re = regexes.get_parens_re(raw_detail)
         while parens_re:
             parens = parens_re.group(1).strip()
             self.notes.append(parens.strip())
-            line = line.replace(parens_re.group(), '').strip()
-            parens_re = regexes.get_parens_re(line)
-        self.detail = line
+            raw_detail = raw_detail.replace(parens_re.group(), '').strip()
+            parens_re = regexes.get_parens_re(raw_detail)
+        self.detail = raw_detail
 
 
     def split_actor_detail(self, li):

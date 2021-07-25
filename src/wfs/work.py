@@ -2,6 +2,7 @@ from helpers import regexes, general, info
 
 
 class Work:
+    
     def __init__(self, basis_tag=None, film_title=None, work=None, formats=None, years=None, creators=None, sources=None) -> None:
         self.work = work
         self.formats = formats or []

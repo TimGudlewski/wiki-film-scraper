@@ -22,7 +22,8 @@ def main(choices_options):
         test_scraper.save_films()
 
         end_time = time.monotonic()
-        print(f'Program Execution Time for n={len(choices_main)}: {timedelta(seconds=end_time - start_time)}')
+        delta = timedelta(seconds=end_time - start_time)
+        print(f'Program Execution Time for n={len(test_scraper.choices)}: {delta.total_seconds()} seconds')
 
 
 test_choices_options = [
