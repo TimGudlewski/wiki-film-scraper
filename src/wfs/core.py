@@ -14,13 +14,13 @@ wfs_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()
 
 class Choice:
 
-    def __init__(self, name: str, year=None) -> None:
+    def __init__(self, name: str, year='') -> None:
         self.name = name
-        self.year = str(year) or None
+        self.year = str(year)
     
 
     def __str__(self) -> str:
-        return self.name
+        return f'{self.name} {self.year}'.strip()
 
 
 class FilmEncoder(json.JSONEncoder):
@@ -31,76 +31,82 @@ class FilmEncoder(json.JSONEncoder):
 
 class Scraper:
 
-    soup = choice = choices = infobox = cast_heading = None
+    soup  = choices = infobox = cast_heading = None
     films = []
 
 
     def __init__(self,
     choices_input = None,
-    from_local = False,
+    html_from_file = False,
+    query_from_file = False,
     get_all = False,
-    search_path = os.path.join(wfs_dir, 'search', 'films_artblog.json'),
+    query_constructor_path = os.path.join(wfs_dir, 'search', 'films_artblog.json'),
+    check_qc_year = False,
     output_path = os.path.join(Path.home(), 'wfs_output', 'example.json'),
     mapping_table = labels_mapping_table,
     html_dir = os.path.join(wfs_dir, 'html')) -> None:
-        self.from_local = from_local
+        self.html_from_file = html_from_file
+        self.query_from_file = query_from_file
         self.get_all = get_all
-        self.search_path = search_path
+        self.query_constructor_path = query_constructor_path
+        self.check_qc_year = check_qc_year
         self.output_path = output_path
         self.mapping_table = mapping_table
         self.html_dir = html_dir
-        if not choices_input and not get_all:
-            msg = "Please initialize Scraper instance with a value for choices, or set get_all to True."
-            sys.exit(msg)
-        if get_all:
-            self._set_choices()
-        elif choices_input:
-            if isinstance(self.choices[0], dict):
-                self.choices = [Choice(**choice) for choice in choices_input]
-            else:
-                self.choices = choices_input
-    
+        if get_all or choices_input:
+            self._set_choices(choices_input)
+        else:
+            sys.exit('Initialize Scraper instance with a value for choices, or set get_all to True.')
 
-    def _get_search_file(self):
-        with open(self.search_path, encoding='ISO-8859-1') as f:
+
+    def _get_query_constructor_file(self):
+        with open(self.query_constructor_path, encoding='ISO-8859-1') as f:
             return json.load(f)
 
 
-    def _set_choices(self):
-        if self.from_local:
-            self.choices = os.listdir(self.html_dir)
-        else:
-            self.choices = self._get_search_file()
-
-
-    def _set_soup(self):
-        if self.from_local:
-            if not self.get_all:
-                choice_file = depunct(self.choice).replace(' ', '_').lower() + '.html'
+    def _get_query_constructor(self, choice, constructor_file):
+        for constructor in constructor_file:
+            if self.check_qc_year:
+                if depunct(constructor['name']).lower() == depunct(choice.name).lower() and str(constructor['year']) == choice.year:
+                    return constructor
             else:
-                choice_file = self.choice
+                if depunct(constructor['name']).lower() == depunct(choice.name).lower():
+                    return constructor
+        sys.exit(f'No query constructor found in QC file for {choice}')
+
+
+    def _set_choices(self, choices_input):
+        if self.html_from_file:
+            if self.get_all:
+                self.choices = os.listdir(self.html_dir)
+            else:
+                self.choices = choices_input
+        else:
+            if self.get_all:
+                self.choices = [Choice(**constructor) for constructor in self._get_query_constructor_file()]
+            elif self.query_from_file:
+                qc_file = self._get_query_constructor_file()
+                constructors = [self._get_query_constructor(choice, qc_file) for choice in choices_input]
+                self.choices = [Choice(**constructor) for constructor in constructors]
+            else:
+                self.choices = [Choice(**choice) for choice in choices_input]
+
+
+    def _set_soup(self, choice):
+        if self.html_from_file:
+            if not self.get_all:
+                choice_file = depunct(choice).replace(' ', '_').lower() + '.html'
+            else:
+                choice_file = choice
             choice_filepath = os.path.join(self.html_dir, choice_file)
             with open(choice_filepath, 'r', encoding='utf-8') as f:
                 self.soup = BeautifulSoup(f.read(), 'html.parser')
         else:
-            if isinstance(self.choice, Choice):
-                search_film = self.choice
-            else:
-                search_film = Choice(**self._get_search_film())
-            query = f"{search_film['name']} {search_film['year']} film wikipedia"
-            search_results = gsearch(query, num_results=1)
-            print(search_results)
+            search_results = gsearch(f'{choice} film wikipedia', num_results=1)
             req = requests.get(search_results.pop(0), headers)
             self.soup = BeautifulSoup(req.content, 'html.parser')
             if len(search_results):
-                setattr(self, f"{search_film['name']} - alt links", search_results)
-    
-
-    def _get_search_film(self):
-        for film in self._get_search_file():
-            if depunct(film['name']).lower() == depunct(self.choice).lower():
-                return film
-        sys.exit()
+                setattr(self, f'{choice} - alt links', search_results)
 
 
     def _set_infobox_set_cast_heading(self):
@@ -117,15 +123,14 @@ class Scraper:
 
     def set_films(self):
         for choice in self.choices:
-            self.choice = choice
-            self._set_soup()
+            self._set_soup(choice)
             film = Film(self.soup)
             film.set_titles(self.soup)
 
             self._set_infobox_set_cast_heading()
 
             if not self.infobox:
-                self.films.append(f'no infobox')
+                self.films.append(f'No infobox for {choice}')
                 continue
 
             if self.cast_heading:
@@ -137,7 +142,7 @@ class Scraper:
                     for actor in starring_strings:
                         film.cast.append(Detail(raw_detail=str(actor)))
                 else:
-                    film.cast = 'no cast heading, no starring in infobox'
+                    film.cast = 'No cast heading; no "Starring" label in infobox.'
 
             film.set_dates(self.infobox)
             basis_tag = get_details_tag(self.infobox, 'Based on')
