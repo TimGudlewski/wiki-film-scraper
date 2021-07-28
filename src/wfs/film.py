@@ -1,7 +1,6 @@
 from detail import Detail
-from work import Work
-from helpers import regexes
-from helpers.general import join_parens, get_details_lines, add_colon_notes, get_details_tag
+from helpers import regexes, info
+from helpers.general import join_parens, get_details_lines, add_colon_notes, get_details_tag, get_elm, format_isodate
 
 
 class Film:
@@ -82,22 +81,64 @@ class Film:
         dates_tag = get_details_tag(infobox, 'Release date')
         if not dates_tag:
             return
-        lines = get_details_lines(dates_tag)
+        lines = get_details_lines(dates_tag, info.excluded_standard)
         join_parens(lines)
         setattr(self, 'dates', [])
         for line in lines:
             date = Detail(raw_detail=line)
+            is_detail_isodate = False
             if date.notes:
                 for i, note in enumerate(date.notes):
                     note_isodate_re = regexes.get_isodate_re(note)
                     if note_isodate_re:
                         date.detail = note_isodate_re.group()
+                        is_detail_isodate = True
                         date.notes.pop(i)
             else:
                 detail_isodate_re = regexes.get_isodate_re(date.detail)
                 if detail_isodate_re:
                     date.detail = detail_isodate_re.group()
+                    is_detail_isodate = True
+            if not is_detail_isodate:
+                month_word = get_elm(info.months, date.detail)
+                if month_word:
+                    month = format_isodate(str(info.months.index(month_word) + 1))
+                    year = day = ''
+                    year_re = regexes.get_year_re(date.detail)
+                    day_re = regexes.get_day_re(date.detail)
+
+                    if year_re:
+                        year = year_re.group()
+                    if day_re:
+                        day = format_isodate(day_re.group())
+                    
+                    date.detail = year + month + day
+
             self.dates.append(date)
+
+
+    def set_money_details(self, infobox):
+        money_labels = ['Budget', 'Box office']
+        money_tags = [get_details_tag(infobox, label) for label in money_labels]
+        if not any(money_tags):
+            return
+        for i, tag in enumerate(money_tags):
+            if not tag:
+                continue
+            lines = get_details_lines(tag, info.excluded_standard)
+            join_parens(lines)
+            money_details = []
+            for line in lines:
+                money_detail = Detail(raw_detail=line)
+                money_re = regexes.get_money_re(money_detail.detail)
+                if money_re:
+                    money = float(money_re.group().replace(',', ''))
+                    if 'million' in money_detail.detail.lower():
+                        money *= 1000000
+                    money_detail.notes.append(money_detail.detail.lower().replace(money_re.group(), '').replace('million', '').strip())
+                    money_detail.detail = int(money)
+                money_details.append(money_detail)
+            setattr(self, money_labels[i], money_details)
 
 
     def set_infobox_details(self, infobox, mapping_table):
@@ -108,8 +149,14 @@ class Film:
                 continue
             label = mapping_table[label]
             details_tag = label_tag.find_next('td')
-            lines = get_details_lines(details_tag)
+            lines = get_details_lines(details_tag, info.excluded_standard)
 
             add_colon_notes(lines)
             join_parens(lines)
-            setattr(self, label, [Detail(raw_detail=line) for line in lines])
+            details = [Detail(raw_detail=line) for line in lines]
+            
+            credit = getattr(self, label, None)
+            if credit:
+                credit.extend(detail for detail in details if detail not in credit)
+            else:
+                setattr(self, label, details)

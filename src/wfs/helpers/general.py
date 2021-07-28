@@ -28,14 +28,20 @@ def depunct(name):
     return name.translate(str.maketrans('', '', punctuation))
 
 
+def format_isodate(num: str):
+    if len(num) == 1:
+        num = '0' + num
+    return '-' + num
+
+
 def get_details_tag(infobox, label):
     label_tag = infobox.find('th', class_='infobox-label', string=label)
     if label_tag:
         return label_tag.find_next('td')
 
 
-def get_details_lines(details_tag):
-    return [str(line) for line in details_tag.stripped_strings if line not in ['"', ','] and line[0] != '[']
+def get_details_lines(details_tag, excluded):
+    return [str(line) for line in details_tag.stripped_strings if line not in excluded and line[0] != '[']
 
 
 def get_elm(targets, line):
@@ -84,10 +90,11 @@ def join_parens(lines):
 
 
 def remove_parens(line):
-    if line[0] == '(' and line[-1] == ')':
-        return line[1:-1]
-    else:
-        return line
+    if line[0] == '(':
+        line = line[1:]
+    if line[-1] == ')':
+        line = line[:-1]
+    return line
 
 
 def update_schema(line, targets, schema, i, line_type):

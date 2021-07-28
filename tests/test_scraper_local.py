@@ -12,13 +12,15 @@ from wfs import Scraper
 
 def main(choices_options):
     choices_main = []
-    for i in range(len(choices_options)):
+    for i in range(len(choices_options) or 1):
         choices_main.append(choices_options[i])
 
         start_time = time.monotonic()
 
-        test_scraper = Scraper(choices=choices_main, from_local=True)
+        test_scraper = Scraper(choices_input=choices_main, html_from_file=True)
         test_scraper.set_films()
+        for film in test_scraper.films:
+            print(getattr(film, 'basis', f'NO BASIS FOR {film.titles[0].detail}'))
         test_scraper.save_films()
 
         end_time = time.monotonic()
@@ -27,7 +29,8 @@ def main(choices_options):
 
 
 test_choices_options = [
-    'journey into fear',
-    'the pawnbroker'
+    'scarlet street',
+    'caged',
+    'la nuit du carrefour'
 ]
 main(test_choices_options)

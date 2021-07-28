@@ -2,9 +2,13 @@ from helpers import regexes, general, info
 
 
 class Work:
-    
-    def __init__(self, basis_tag=None, film_title=None, work=None, formats=None, years=None, creators=None, sources=None) -> None:
-        self.work = work
+
+    fycws_keys = ['formats', 'years', 'creators', 'works', 'sources']
+    unwanted_untyped_lines = ['by', 'in']
+
+
+    def __init__(self, basis_tag=None, film_title=None, works=None, formats=None, years=None, creators=None, sources=None) -> None:
+        self.works = works or []
         self.formats = formats or []
         self.years = years or []
         self.creators = creators or []
@@ -13,64 +17,64 @@ class Work:
             self.extract_attrs(basis_tag, film_title)
 
 
+    def __str__(self) -> str:
+        return_val = ''
+        for key in self.fycws_keys:
+            return_val += f'{key}: {getattr(self, key)}\n'
+        return return_val
+
+
     def extract_attrs(self, basis_tag, film_title):
-        italics = []
         italics_tags = basis_tag.find_all('i')
-        if italics_tags:
-            italics.extend([italic_tag.text for italic_tag in italics_tags])
-            for italic in italics:
-                if italic[0] == '(' and italic[-1] == ')':
-                    italic = italic[1:-1]
-        quote = ''
-        quote_re = regexes.get_quote_re(basis_tag.text)
-        if quote_re:
-            quote = quote_re.group(1).strip()
+        italics = [italic_tag.text for italic_tag in italics_tags]
+        quotes = regexes.get_quote_re(basis_tag.text, all=True)
+        lines = general.get_details_lines(basis_tag, info.excluded_basis)
+        lines_schema = {i: [] for i in range(len(lines))}
 
-        lines = general.get_details_lines(basis_tag)
-        lines_schema = {}
-        for i in range(len(lines)):
-            lines_schema[i] = []
+        for j, line in enumerate(lines):
+            line_fycws = {key: [] for key in self.fycws_keys}
+            prev_line = general.get_prev_line(j, lines)
+            italic = general.get_elm(italics, line)
+            quote = general.get_elm(quotes, line)
+            line = general.remove_parens(line)
 
-        for i in range(-1, len(lines) - 1):
-            next_line = general.at_index(i + 1, lines)
-            if next_line[0] == '(':
-                next_line = next_line[1:]
-            if next_line[-1] == ')':
-                next_line = next_line[:-1]
-            formats = general.get_elms(info.work_format_words, next_line)
-            years = regexes.get_year_res(next_line)
-            general.append_unique(formats, self.formats, lines_schema, i + 1, 'formats')
-            general.append_unique(years, self.years, lines_schema, i + 1, 'years')
+            if italic:
+                italic = general.remove_parens(italic)
+                if general.is_preceded_by(prev_line, ' in') or quotes:
+                    line_fycws['sources'].append(italic)
+                elif italic not in info.work_format_words:
+                    line_fycws['works'].append(italic)
+            if quote:
+                line_fycws['works'].append(quote)
 
-            this_line = general.get_prev_line(i + 1, lines)
-            is_by_line = next_line[:3].lower() == 'by '
-            if is_by_line or (this_line and general.is_preceded_by(this_line, ' by')):
-                self.creators.append(next_line.replace('by ', ''))
-                lines_schema[i + 1].append('creators')
+            line_fycws['formats'] = general.get_elms(info.work_format_words, line)
+            line_fycws['years'] = regexes.get_year_re(line, all=True)
+            if line[:3].lower() == 'by ':
+                line_fycws['creators'].append(line[3:])
+            if general.is_preceded_by(prev_line, ' by'):
+                line_fycws['creators'].append(line)
 
-            next_line_quote = general.get_elm([quote], next_line)
-            if next_line_quote:
-                self.work = next_line_quote
-                lines_schema[i + 1].append('work')
-
-            next_line_italic = general.get_elm(italics, next_line)
-            if next_line_italic:
-                if general.is_preceded_by(this_line, ' in') or quote:
-                    self.sources.append(next_line_italic)
-                    lines_schema[i + 1].append('sources')
-                elif next_line_italic not in info.work_format_words:
-                    self.work = next_line_italic
-                    lines_schema[i + 1].append('work')
-
-            # Using a line pattern to deduce the information type of a line of unknown type. Example: Scarlet Street
-            prev_prev_line_types = lines_schema.get(i - 2)
-            prev_line_types = lines_schema.get(i - 1)
-            next_line_types = lines_schema.get(i + 1)
-            this_line_types = lines_schema.get(i)
-            if prev_prev_line_types and prev_line_types and next_line_types and not this_line_types:
-                if prev_line_types == next_line_types:
-                    for line_type in prev_prev_line_types:
-                        getattr(self, line_type).append(this_line)
+            for key in self.fycws_keys:
+                general.append_unique(line_fycws[key], getattr(self, key), lines_schema, j, key)
         
-        if not self.work:
-            self.work = film_title
+        untyped_lines = [lines[key] for key in [*lines_schema] if not lines_schema[key] and lines[key] not in self.unwanted_untyped_lines]
+        self.creators.extend(untyped_lines)
+        if not self.works:
+            self.works.append(film_title)
+    
+
+    def set_complete_creators(self, film_writing):
+        double_creators = [creator for creator in self.creators if ' and ' in creator]
+        if double_creators:
+            for dc in double_creators:
+                dc_idx = self.creators.index(dc)
+                dc_split = dc.split(' and ')
+                print(dc_split, film_writing)
+                dc_complete = [creator for creator in film_writing if any(partial in creator for partial in dc_split)]
+                print(dc_complete)
+                if dc_complete:
+                    self.creators[dc_idx] = dc_complete.pop(0)
+                    if len(self.creators) > dc_idx + 1:
+                        self.creators[dc_idx + 1:dc_idx + 1] = dc_complete
+                    else:
+                        self.creators.extend(dc_complete)

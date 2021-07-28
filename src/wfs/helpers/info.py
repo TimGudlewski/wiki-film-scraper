@@ -40,6 +40,10 @@ labels_mapping_table = {
     'Music by': "music",
     'Running time': "length",
     'Cinematography': "cinematography",
-    'Box office': "sales",
-    'Budget': "budget",
 }
+
+excluded_standard = ['"', ',']
+
+excluded_basis = ['"', ',', '(', ')']
+
+months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]

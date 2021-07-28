@@ -64,14 +64,14 @@ class Scraper:
             return json.load(f)
 
 
-    def _get_query_constructor(self, choice, constructor_file):
-        for constructor in constructor_file:
+    def _get_query_constructor(self, choice, qc_file):
+        for qc in qc_file:
             if self.check_qc_year:
-                if depunct(constructor['name']).lower() == depunct(choice.name).lower() and str(constructor['year']) == choice.year:
-                    return constructor
+                if depunct(qc['name']).lower() == depunct(choice.name).lower() and str(qc['year']) == choice.year:
+                    return qc
             else:
-                if depunct(constructor['name']).lower() == depunct(choice.name).lower():
-                    return constructor
+                if depunct(qc['name']).lower() == depunct(choice.name).lower():
+                    return qc
         sys.exit(f'No query constructor found in QC file for {choice}')
 
 
@@ -83,11 +83,11 @@ class Scraper:
                 self.choices = choices_input
         else:
             if self.get_all:
-                self.choices = [Choice(**constructor) for constructor in self._get_query_constructor_file()]
+                self.choices = [Choice(**qc) for qc in self._get_query_constructor_file()]
             elif self.query_from_file:
                 qc_file = self._get_query_constructor_file()
-                constructors = [self._get_query_constructor(choice, qc_file) for choice in choices_input]
-                self.choices = [Choice(**constructor) for constructor in constructors]
+                qcs = [self._get_query_constructor(choice, qc_file) for choice in choices_input]
+                self.choices = [Choice(**qc) for qc in qcs]
             else:
                 self.choices = [Choice(**choice) for choice in choices_input]
 
@@ -128,7 +128,6 @@ class Scraper:
             film.set_titles(self.soup)
 
             self._set_infobox_set_cast_heading()
-
             if not self.infobox:
                 self.films.append(f'No infobox for {choice}')
                 continue
@@ -145,20 +144,23 @@ class Scraper:
                     film.cast = 'No cast heading; no "Starring" label in infobox.'
 
             film.set_dates(self.infobox)
+            film.set_infobox_details(self.infobox, self.mapping_table)
+            writing = getattr(film, 'writing', None)
             basis_tag = get_details_tag(self.infobox, 'Based on')
             if basis_tag:
                 setattr(film, 'basis', Work(basis_tag, film.titles[0].detail))
-            film.set_infobox_details(self.infobox, self.mapping_table)
-            if getattr(film, 'writing', None) and not getattr(film, 'basis', None):
-                creators = list(filter(lambda x: any(note in work_format_words for note in x.notes), film.writing))
+                if writing:
+                    film.basis.set_complete_creators([writer.detail for writer in writing])
+            elif writing:
+                creators = list(filter(lambda x: any(note in work_format_words for note in x.notes), writing))
                 if creators:
                     work_kwargs = dict(
                         creators = [creator.detail for creator in creators],
-                        work = film.titles[0].detail,
+                        works = [film.titles[0].detail],
                         formats = [note for creator in creators for note in creator.notes if note in work_format_words]
                         )
                     setattr(film, 'basis', Work(**work_kwargs))
-
+            film.set_money_details(self.infobox)
             self.films.append(film)
 
 

@@ -12,6 +12,10 @@ class Detail:
             self.set_detail_set_notes(raw_detail)
 
 
+    def __eq__(self, o: object) -> bool:
+        return self.detail == o.detail
+
+
     def set_detail_set_notes(self, raw_detail):
         parens_re = regexes.get_parens_re(raw_detail)
         while parens_re:
