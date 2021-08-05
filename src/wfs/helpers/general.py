@@ -1,4 +1,7 @@
 from string import punctuation
+from regexes import get_footnote_re
+from warnings import warn
+import json
 
 
 def add_colon_notes(lines):
@@ -34,6 +37,11 @@ def format_isodate(num: str):
     return '-' + num
 
 
+def get_choices_file(path):
+    with open(path, encoding='ISO-8859-1') as f:
+        return json.load(f)
+
+
 def get_details_tag(infobox, label):
     label_tag = infobox.find('th', class_='infobox-label', string=label)
     if label_tag:
@@ -41,7 +49,7 @@ def get_details_tag(infobox, label):
 
 
 def get_details_lines(details_tag, excluded):
-    return [str(line) for line in details_tag.stripped_strings if line not in excluded and line[0] != '[']
+    return [str(line) for line in details_tag.stripped_strings if not (line in excluded or get_footnote_re(line, as_line=True))]
 
 
 def get_elm(targets, line):
@@ -57,6 +65,19 @@ def get_elms(targets, line):
         if elm in line.lower():
             elms.append(elm)
     return elms
+
+
+def get_file_choices(choices, file, file_path):
+    file_choices = []
+    for choice in choices:
+        if type(choice) is dict:
+            file_choices.append(choice)
+        else:
+            found_file_choice = next(file_choice for file_choice in file if depunct(file_choice['name']).lower() == depunct(str(choice)).lower(), None)
+            if not found_file_choice:
+                warn(f'No record for {choice} found in {file_path}')
+            file_choices.append(found_file_choice)
+    return file_choices
 
 
 def get_prev_line(idx, lines):

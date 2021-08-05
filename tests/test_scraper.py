@@ -10,27 +10,25 @@ sys.path[0:0] = [src_dir, wfs_dir]
 from wfs import Scraper
 
 
-def main(choices_options):
-    choices_main = []
-    for i in range(len(choices_options)):
-        choices_main.append(choices_options[i])
+def main(choices):
+    start_time = time.monotonic()
 
-        start_time = time.monotonic()
+    test_scraper = Scraper()
+    test_scraper.set_choices(choices=choices, choices_local=True)
+    test_scraper.set_films()
+    print(test_scraper.search_results)
+    test_scraper.save_films()
 
-        test_scraper = Scraper(choices=choices_main)
-        test_scraper.set_films()
-        test_scraper.save_films()
-
-        end_time = time.monotonic()
-        delta = timedelta(seconds=end_time - start_time)
-        print(f'Program Execution Time for n={len(test_scraper.choices)}: {delta.total_seconds()} seconds')
+    end_time = time.monotonic()
+    delta = timedelta(seconds=end_time - start_time)
+    print(f'Program Execution Time for n={len(test_scraper.choices)}: {delta.total_seconds()} seconds')
 
 
-test_choices_options = [
+test_choices = [
     'nora prentiss',
     'odd man out',
     'out of the past',
     'drunken angel',
     'la nuit du carrefour'
 ]
-main(test_choices_options)
+main(test_choices)

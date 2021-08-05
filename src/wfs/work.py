@@ -58,7 +58,7 @@ class Work:
                 general.append_unique(line_fycws[key], getattr(self, key), lines_schema, j, key)
         
         untyped_lines = [lines[key] for key in [*lines_schema] if not lines_schema[key] and lines[key] not in self.unwanted_untyped_lines]
-        self.creators.extend(untyped_lines)
+        self.creators.extend(untyped_lines)  # Creator is the only work detail type without something concrete (quotes, italics, enum list, regex) to define it
         if not self.works:
             self.works.append(film_title)
     
@@ -69,9 +69,7 @@ class Work:
             for dc in double_creators:
                 dc_idx = self.creators.index(dc)
                 dc_split = dc.split(' and ')
-                print(dc_split, film_writing)
                 dc_complete = [creator for creator in film_writing if any(partial in creator for partial in dc_split)]
-                print(dc_complete)
                 if dc_complete:
                     self.creators[dc_idx] = dc_complete.pop(0)
                     if len(self.creators) > dc_idx + 1:

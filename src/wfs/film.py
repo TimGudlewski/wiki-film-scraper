@@ -99,6 +99,7 @@ class Film:
                 if detail_isodate_re:
                     date.detail = detail_isodate_re.group()
                     is_detail_isodate = True
+
             if not is_detail_isodate:
                 month_word = get_elm(info.months, date.detail)
                 if month_word:
@@ -106,12 +107,10 @@ class Film:
                     year = day = ''
                     year_re = regexes.get_year_re(date.detail)
                     day_re = regexes.get_day_re(date.detail)
-
                     if year_re:
                         year = year_re.group()
                     if day_re:
                         day = format_isodate(day_re.group())
-                    
                     date.detail = year + month + day
 
             self.dates.append(date)
