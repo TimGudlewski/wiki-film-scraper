@@ -22,7 +22,8 @@ work_format_words = [
     'book series',
     'radio series',
     'series',
-    'serial'
+    'serial',
+    'articles'
 ]
 
 labels_mapping_table = {
@@ -38,7 +39,6 @@ labels_mapping_table = {
     'Productioncompany': "production",
     'Distributed by': "distribution",
     'Music by': "music",
-    'Running time': "length",
     'Cinematography': "cinematography",
 }
 

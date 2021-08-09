@@ -20,6 +20,10 @@ def get_money_re(line: str):
     return re.search(r'\d[\d\.\,]*', line)
 
 
+def get_nums(line: str):
+    return re.findall(r'\d+', line)
+
+
 def get_parens_re(line: str, start=False, end=False):
     if start:
         return re.match(r'\((.+?)\)', line)

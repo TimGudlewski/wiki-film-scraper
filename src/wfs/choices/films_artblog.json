@@ -175,6 +175,10 @@
         "stars": 5
     },
     {
+        "name": "The October Man",
+        "year": "1947"
+    },
+    {
         "name": "Out of the Past",
         "year": "1947",
         "country": "US",
@@ -408,6 +412,10 @@
         "country": "US",
         "review": "Cheating wife Stanwyck faces the music. Fritz Lang puts sexual license and existential entitlement on trial and wins.",
         "stars": 5
+    },
+    {
+        "name": "Kansas City Confidential",
+        "year": "1952"
     },
     {
         "name": "The Big Heat",

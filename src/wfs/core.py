@@ -6,7 +6,7 @@ from warnings import warn
 from pathlib import Path
 from bs4 import BeautifulSoup
 from film import Film
-from helpers.state_of_exceptions import ChoicesError, PagesError
+from helpers.exceptions import ChoicesError, PagesError
 from work import Work
 from detail import Detail
 from helpers.info import headers, work_format_words, labels_mapping_table
@@ -19,12 +19,12 @@ class Choice:
         self.name = name
         self.year = str(year)
 
+
     def __str__(self) -> str:
         return f'{self.name or ""} {self.year or ""}'.strip()
 
 
 class FilmEncoder(json.JSONEncoder):
-
     def default(self, o):
         return o.__dict__
 
@@ -34,11 +34,13 @@ class Scraper:
     films = []
     search_results = []
 
+
     def __init__(self, pages_local=False, pages_dir_path=os.path.join(wfs_dir, 'pages')) -> None:
         self.pages_local = pages_local
         self.pages_dir_path = pages_dir_path
         if pages_local and not os.path.exists(pages_dir_path):
-            raise PagesError(f'Pages directory "{pages_dir_path}" not found.')
+            raise PagesError(f'Pages directory not found at path: {pages_dir_path}')
+
 
     def set_choices(self, choices=None, choices_local=False, choices_file_path=os.path.join(wfs_dir, 'choices', 'films_artblog.json')):
         # The choices parameter should be a list of strings or a list of dicts.
@@ -48,7 +50,7 @@ class Scraper:
         # if choices is omitted and pages_local is True, all pages from pages_dir will be processed.
         if not (choices or self.pages_local or choices_local):
             raise ChoicesError('If parameter "choices" not present, either pages_local or choices_local must be true.')
-        if choices and not type(choices) is list:
+        if choices and type(choices) is not list:
             raise TypeError('Parameter "choices" must be a list, and should only contain strings and/or dictionaries.')
         if not self.pages_local:
             if choices_local:
@@ -64,7 +66,7 @@ class Scraper:
                     if type(choice) is dict:
                         self.choices.append(Choice(name=choice.get('name'), year=choice.get('year')))
                     else:
-                        if not type(choice) is str:
+                        if type(choice) is not str:
                             warn('Each choice in "choices" should be of type str or dict.')
                         self.choices.append(str(choice))
         else:
@@ -72,6 +74,7 @@ class Scraper:
                 self.choices = [depunct(str(choice)).replace(' ', '_').lower() + '.html' for choice in choices]
             else:
                 self.choices = os.listdir(self.pages_dir_path)
+
 
     def _set_soup(self, choice, results_idx):
         if self.pages_local:
@@ -83,13 +86,17 @@ class Scraper:
                 self.soup = BeautifulSoup(f.read(), 'html.parser')
         else:
             search_results = gsearch(f'{choice} film wikipedia', num_results=3)
+            if not search_results:
+                warn(f'No search results found for {choice}.')
+                return
             self.search_results.append({'choice': str(choice), 'results': search_results})
             target_result = at_index(results_idx, search_results)
             if not target_result:
-                warn(f'Search results index out of range (results_idx = {results_idx}).')
-                return
+                target_result = at_index(0, search_results)
+                warn(f'Search results index out of range (results_idx = {results_idx}). Reverted to 0.')
             req = requests.get(target_result, headers)
             self.soup = BeautifulSoup(req.content, 'html.parser')
+
 
     def _set_infobox_set_cast_heading(self):
         self.infobox = self.soup.find('table', class_='infobox vevent')
@@ -102,17 +109,21 @@ class Scraper:
                 self.infobox = film_version_section.find_next('table', class_='infobox vevent')
                 self.cast_heading = film_version_section.find_next('span', string='Cast')
 
+
     def set_films(self, results_idx=0, mapping_table=labels_mapping_table):
+        if type(mapping_table) is not dict:
+            mapping_table = labels_mapping_table
+            warn('Parameter "mapping_table" must be of type dict. Reverted to default.')
         for choice in self.choices:
             if not choice:
                 continue
             self._set_soup(choice, results_idx)
             if not self.soup:
-                warn(f'Soup could not be made for choice: {choice}. Continuing to next.')
+                warn(f'Soup could not be made for choice: {choice}. Continued to next choice.')
                 continue
             self._set_infobox_set_cast_heading()
             if not self.infobox:
-                warn(f'No infobox found for {choice}. Continuing to next.')
+                warn(f'No infobox found for choice: {choice}. Continued to next choice.')
                 continue
             film = Film(self.soup)
             film.set_titles(self.soup)
@@ -132,8 +143,9 @@ class Scraper:
             basis_tag = get_details_tag(self.infobox, 'Based on')
             if basis_tag:
                 setattr(film, 'basis', Work(basis_tag, film.titles[0].detail))
-                if writing:
-                    film.basis.set_complete_creators([writer.detail for writer in writing])
+                double_creators = [creator for creator in film.basis.creators if ' and ' in creator]
+                if double_creators:
+                    film.basis.format_double_creators(double_creators, writing)
             elif writing:
                 creators = list(filter(lambda writer: any(note in work_format_words for note in writer.notes), writing))
                 if creators:
@@ -143,8 +155,10 @@ class Scraper:
                         formats = [note for creator in creators for note in creator.notes if note in work_format_words]
                         )
                     setattr(film, 'basis', Work(**work_kwargs))
+            film.set_length(self.infobox)
             film.set_money_details(self.infobox)
             self.films.append(film)
+
 
     def save_films(self, output_file=os.path.join(Path.home(), 'wfs_output', 'example.json')):
         output_dir = os.path.dirname(output_file)

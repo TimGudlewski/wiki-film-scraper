@@ -17,7 +17,7 @@ my_scraper.set_choices(choices=choices)
 The choices parameter can be a list of strings, or a list of dictionaries with 'name' and 'year' properties. 
 Include a release year for each film title to avoid unwanted search results.
 
-Call **set_films** to search the films and save them to the 'films' attribute of the Scraper instance.
+Call **set_films** to search the films and set them to the 'films' attribute of the Scraper instance.
 Call **save_films** to save the films and their details to a JSON file.
 ```python
 my_scraper.set_films()

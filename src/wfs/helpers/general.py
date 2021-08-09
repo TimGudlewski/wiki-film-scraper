@@ -1,5 +1,5 @@
-from string import punctuation
-from regexes import get_footnote_re
+from helpers.regexes import get_footnote_re
+from helpers.info import excluded_standard
 from warnings import warn
 import json
 
@@ -27,8 +27,10 @@ def at_index(idx, in_list):
         pass
 
 
-def depunct(name):
-    return name.translate(str.maketrans('', '', punctuation))
+def depunct(txt):
+    from string import punctuation
+    punctuation += '–'
+    return txt.translate(str.maketrans('', '', punctuation))
 
 
 def format_isodate(num: str):
@@ -48,7 +50,7 @@ def get_details_tag(infobox, label):
         return label_tag.find_next('td')
 
 
-def get_details_lines(details_tag, excluded):
+def get_details_lines(details_tag, excluded=excluded_standard):
     return [str(line) for line in details_tag.stripped_strings if not (line in excluded or get_footnote_re(line, as_line=True))]
 
 
@@ -62,7 +64,7 @@ def get_elm(targets, line):
 def get_elms(targets, line):
     elms = []
     for elm in targets:
-        if elm in line.lower():
+        if elm in depunct(line.lower()).split():
             elms.append(elm)
     return elms
 
@@ -73,7 +75,7 @@ def get_file_choices(choices, file, file_path):
         if type(choice) is dict:
             file_choices.append(choice)
         else:
-            found_file_choice = next(file_choice for file_choice in file if depunct(file_choice['name']).lower() == depunct(str(choice)).lower(), None)
+            found_file_choice = next((file_choice for file_choice in file if depunct(file_choice['name']).lower() == depunct(str(choice)).lower()), None)
             if not found_file_choice:
                 warn(f'No record for {choice} found in {file_path}')
             file_choices.append(found_file_choice)

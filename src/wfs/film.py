@@ -1,10 +1,9 @@
 from detail import Detail
 from helpers import regexes, info
-from helpers.general import join_parens, get_details_lines, add_colon_notes, get_details_tag, get_elm, format_isodate
+from helpers.general import *
 
 
 class Film:
-
     def __init__(self, soup) -> None:
         page_title = soup.title.text
         if len(page_title) > 12:
@@ -27,7 +26,6 @@ class Film:
             else:
                 self.titles.append(Detail(detail=summary[:50], note='summary'))
             return
-
         main_title = first_i_tag.text.strip()
         self.titles.insert(0, Detail(detail=main_title, note='main'))
         main_title_parens_re = regexes.get_parens_re(summary[len(main_title) + 1:], start=True)
@@ -53,25 +51,21 @@ class Film:
             uls.extend(first_ul.find_previous('tr').find_all('ul'))
         else:
             uls.append(first_ul)
-        
         for ul in uls:
             lis = ul.find_all('li', recursive=False)
             # The recursive=False option prevents nested lis from getting their own item in the list, 
             # which would be duplicative due to their inclusion in the text of their parent (see note below)
-
             for li in lis:
                 li_text = li.text.strip()
                 footnote_re = regexes.get_footnote_re(li_text)
                 while footnote_re:
                     li_text = li_text.replace(footnote_re.group(), '').strip()
                     footnote_re = regexes.get_footnote_re(li_text)
-
                 if '\n' in li_text:  # Example case: The Lady from Shanghai
                     li_text = li_text.replace('\n', ' (').strip() + ')'
                 # When accessing the text property of an li tag that includes a nested list,
                 # Beautiful Soup appends the text of its child lis to it, separating them with \n.
                 # The operation above should enclose the text of a nested li in parens, which will then be converted into a note.
-
                 credit = Detail(raw_detail=li_text)
                 credit.split_actor_detail(li)
                 self.cast.append(credit)
@@ -99,7 +93,6 @@ class Film:
                 if detail_isodate_re:
                     date.detail = detail_isodate_re.group()
                     is_detail_isodate = True
-
             if not is_detail_isodate:
                 month_word = get_elm(info.months, date.detail)
                 if month_word:
@@ -112,12 +105,12 @@ class Film:
                     if day_re:
                         day = format_isodate(day_re.group())
                     date.detail = year + month + day
-
             self.dates.append(date)
 
 
     def set_money_details(self, infobox):
         money_labels = ['Budget', 'Box office']
+        new_money_labels = ['budget', 'sales']
         money_tags = [get_details_tag(infobox, label) for label in money_labels]
         if not any(money_tags):
             return
@@ -137,7 +130,32 @@ class Film:
                     money_detail.notes.append(money_detail.detail.lower().replace(money_re.group(), '').replace('million', '').strip())
                     money_detail.detail = int(money)
                 money_details.append(money_detail)
-            setattr(self, money_labels[i], money_details)
+            setattr(self, new_money_labels[i], money_details)
+    
+
+    def set_length(self, infobox):
+        length_tag = get_details_tag(infobox, 'Running time')
+        lines = get_details_lines(length_tag)
+        join_parens(lines)
+        length = []
+        for line in lines:
+            length_detail_1 = Detail(raw_detail=line)
+            nums = regexes.get_nums(length_detail_1.detail)
+            if nums:
+                if any(time_unit in length_detail_1.detail for time_unit in ['min', 'mn']):
+                    note = 'min'
+                else:
+                    note = length_detail_1.detail
+                    for num in nums:
+                        note = note.replace(num, '')
+                    note = depunct(note).lower().strip()
+                length_detail_1.notes.append(note)
+                length_detail_1.detail = int(nums[0])
+                length.append(length_detail_1)
+                if len(nums) > 1:
+                    for num in nums[1:]:
+                        length.append(Detail(detail=int(num), note=note))
+        setattr(self, 'length', length)
 
 
     def set_infobox_details(self, infobox, mapping_table):
@@ -149,11 +167,9 @@ class Film:
             label = mapping_table[label]
             details_tag = label_tag.find_next('td')
             lines = get_details_lines(details_tag, info.excluded_standard)
-
             add_colon_notes(lines)
             join_parens(lines)
             details = [Detail(raw_detail=line) for line in lines]
-            
             credit = getattr(self, label, None)
             if credit:
                 credit.extend(detail for detail in details if detail not in credit)
