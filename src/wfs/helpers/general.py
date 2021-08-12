@@ -7,9 +7,9 @@ import json
 def add_colon_notes(lines):
     for i, line in enumerate(lines):
         if line[-1] == ':':
-                note = lines.pop(i)[:-1].lower()
-                for j in range(i, len(lines)):
-                    lines[j] += f'({note})'
+            note = lines.pop(i)[:-1].lower()
+            for j in range(i, len(lines)):
+                lines[j] += f'({note})'
 
 
 def append_unique(appendants, target, schema, idx, line_type):
@@ -39,7 +39,7 @@ def format_isodate(num: str):
     return '-' + num
 
 
-def get_choices_file(path):
+def read_json_file(path):
     with open(path, encoding='ISO-8859-1') as f:
         return json.load(f)
 
@@ -123,3 +123,8 @@ def remove_parens(line):
 def update_schema(line, targets, schema, i, line_type):
     if line in targets:
         schema[i] = line_type
+
+
+def write_json_file(output_file, data, encoder):
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, cls=encoder)

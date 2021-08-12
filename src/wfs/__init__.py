@@ -1,1 +1,1 @@
-from core import Scraper
+from core import Scraper, FilmEncoder

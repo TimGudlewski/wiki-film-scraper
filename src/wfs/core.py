@@ -1,6 +1,6 @@
 import os, requests, json, inspect
 
-from helpers.general import depunct, get_details_tag, get_choices_file, get_file_choices, at_index
+from helpers.general import *
 from googlesearch import search as gsearch
 from warnings import warn
 from pathlib import Path
@@ -54,7 +54,7 @@ class Scraper:
             raise TypeError('Parameter "choices" must be a list, and should only contain strings and/or dictionaries.')
         if not self.pages_local:
             if choices_local:
-                choices_file = get_choices_file(choices_file_path)
+                choices_file = read_json_file(choices_file_path)
                 if choices:
                     final_choices = get_file_choices(choices, choices_file, choices_file_path)
                 else:
@@ -76,7 +76,7 @@ class Scraper:
                 self.choices = os.listdir(self.pages_dir_path)
 
 
-    def _set_soup(self, choice, results_idx):
+    def _set_soup(self, choice, results_idx=0):
         if self.pages_local:
             page_file_path = os.path.join(self.pages_dir_path, choice)
             if not os.path.exists(page_file_path):
@@ -111,9 +111,6 @@ class Scraper:
 
 
     def set_films(self, results_idx=0, mapping_table=labels_mapping_table):
-        if type(mapping_table) is not dict:
-            mapping_table = labels_mapping_table
-            warn('Parameter "mapping_table" must be of type dict. Reverted to default.')
         for choice in self.choices:
             if not choice:
                 continue
@@ -125,10 +122,10 @@ class Scraper:
             if not self.infobox:
                 warn(f'No infobox found for choice: {choice}. Continued to next choice.')
                 continue
-            film = Film(self.soup)
+            film = Film()
             film.set_titles(self.soup)
             if self.cast_heading:
-                film.set_cast(self.cast_heading)
+                film.set_cast(cast_heading=self.cast_heading)
             else:
                 starring_tag = self.infobox.find('th', string="Starring")
                 if starring_tag:
@@ -137,8 +134,8 @@ class Scraper:
                         film.cast.append(Detail(raw_detail=str(actor)))
                 else:
                     warn(f'Cast could not be set for {film.titles[0].detail}.')
-            film.set_dates(self.infobox)
-            film.set_infobox_details(self.infobox, mapping_table)
+            film.set_dates(infobox=self.infobox)
+            film.set_infobox_details(infobox=self.infobox, mapping_table=mapping_table)
             writing = getattr(film, 'writing', None)
             basis_tag = get_details_tag(self.infobox, 'Based on')
             if basis_tag:
@@ -155,8 +152,8 @@ class Scraper:
                         formats = [note for creator in creators for note in creator.notes if note in work_format_words]
                         )
                     setattr(film, 'basis', Work(**work_kwargs))
-            film.set_length(self.infobox)
-            film.set_money_details(self.infobox)
+            film.set_length(infobox=self.infobox)
+            film.set_money_details(infobox=self.infobox)
             self.films.append(film)
 
 
@@ -164,5 +161,4 @@ class Scraper:
         output_dir = os.path.dirname(output_file)
         if not os.path.exists(output_dir):
             os.mkdir(output_dir)
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(self.films, f, ensure_ascii=False, cls=FilmEncoder)
+        write_json_file(output_file, self.films, FilmEncoder)

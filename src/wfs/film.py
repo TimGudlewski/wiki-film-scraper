@@ -1,18 +1,21 @@
 from detail import Detail
 from helpers import regexes, info
 from helpers.general import *
+import unittest
 
 
 class Film:
-    def __init__(self, soup) -> None:
-        page_title = soup.title.text
-        if len(page_title) > 12:
-            page_title = page_title[:-12]
-        self.titles = [Detail(raw_detail=page_title, note='page')]
+    def __init__(self) -> None:
+        self.titles = []
         self.cast = []
 
 
-    def set_titles(self, soup):
+    def set_titles(self, **kwargs):
+        soup = kwargs.get('soup')
+        page_title = soup.title.text
+        if page_title.endswith(' - Wikipedia'):
+            page_title = page_title[:-12]
+        self.titles.append(Detail(raw_detail=page_title, note='page'))
         summary_tag = soup.find('p', class_='')
         if not summary_tag:
             return
@@ -41,8 +44,8 @@ class Film:
                     next_i = next_i_tag.text.strip()
 
 
-    def set_cast(self, cast_heading):
-        first_ul = cast_heading.find_next('ul')
+    def set_cast(self, **kwargs):
+        first_ul = kwargs.get('cast_heading').find_next('ul')
         if not first_ul:
             return
         uls = []
@@ -66,13 +69,13 @@ class Film:
                 # When accessing the text property of an li tag that includes a nested list,
                 # Beautiful Soup appends the text of its child lis to it, separating them with \n.
                 # The operation above should enclose the text of a nested li in parens, which will then be converted into a note.
-                credit = Detail(raw_detail=li_text)
+                credit = Detail(raw_detail=li_text, is_actor=True)
                 credit.split_actor_detail(li)
                 self.cast.append(credit)
 
 
-    def set_dates(self, infobox):
-        dates_tag = get_details_tag(infobox, 'Release date')
+    def set_dates(self, **kwargs):
+        dates_tag = get_details_tag(kwargs.get('infobox'), 'Release date')
         if not dates_tag:
             return
         lines = get_details_lines(dates_tag, info.excluded_standard)
@@ -108,10 +111,10 @@ class Film:
             self.dates.append(date)
 
 
-    def set_money_details(self, infobox):
+    def set_money_details(self, **kwargs):
         money_labels = ['Budget', 'Box office']
         new_money_labels = ['budget', 'sales']
-        money_tags = [get_details_tag(infobox, label) for label in money_labels]
+        money_tags = [get_details_tag(kwargs.get('infobox'), label) for label in money_labels]
         if not any(money_tags):
             return
         for i, tag in enumerate(money_tags):
@@ -133,14 +136,14 @@ class Film:
             setattr(self, new_money_labels[i], money_details)
     
 
-    def set_length(self, infobox):
-        length_tag = get_details_tag(infobox, 'Running time')
+    def set_length(self, **kwargs):
+        length_tag = get_details_tag(kwargs.get('infobox'), 'Running time')
         lines = get_details_lines(length_tag)
         join_parens(lines)
         length = []
         for line in lines:
             length_detail_1 = Detail(raw_detail=line)
-            nums = regexes.get_nums(length_detail_1.detail)
+            nums = regexes.get_num_re(line=length_detail_1.detail, all=True)
             if nums:
                 if any(time_unit in length_detail_1.detail for time_unit in ['min', 'mn']):
                     note = 'min'
@@ -158,8 +161,12 @@ class Film:
         setattr(self, 'length', length)
 
 
-    def set_infobox_details(self, infobox, mapping_table):
-        label_tags = infobox.find_all('th', class_='infobox-label')
+    def set_infobox_details(self, **kwargs):
+        mapping_table = kwargs.get('mapping_table')
+        if not mapping_table or type(mapping_table) is not dict:
+            mapping_table = info.labels_mapping_table
+            warn('Parameter "mapping_table" must be of type dict. Reverted to default.')
+        label_tags = kwargs.get('infobox').find_all('th', class_='infobox-label')
         for label_tag in label_tags:
             label = label_tag.text.strip()
             if label not in [*mapping_table]:
@@ -175,3 +182,41 @@ class Film:
                 credit.extend(detail for detail in details if detail not in credit)
             else:
                 setattr(self, label, details)
+
+
+import os, inspect, sys, unittest
+src_dir = os.path.dirname(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))
+project_dir = os.path.dirname(src_dir)
+expected_file = os.path.join(project_dir, 'tests', 'film_test_expected.json')
+sys.path.insert(0, src_dir)
+from wfs import Scraper
+scraper = Scraper(pages_local=True)
+scraper._set_soup('the_deer_hunter.html')
+scraper._set_infobox_set_cast_heading()
+film_kwargs = dict(soup = scraper.soup, cast_heading = scraper.cast_heading, infobox = scraper.infobox)
+film_methods = [item for item in dir(Film) if not item.startswith('__')]
+expected = read_json_file(expected_file)
+
+
+class TestFilm(unittest.TestCase):
+    def test_film_methods(self):
+        for i, method in enumerate(film_methods):
+            film = Film()
+            getattr(film, method)(**film_kwargs)
+            label = next(key for key in film.__dict__ if film.__dict__[key])
+            for j, detail in enumerate(getattr(film, label)):
+                self.assertEqual(expected[i][label][j], detail.__dict__)
+
+
+def write_expected():
+    from wfs import FilmEncoder
+    exp_lst = []
+    for method in film_methods:
+        film = Film()
+        getattr(film, method)(**film_kwargs)
+        exp_lst.append(film)
+    write_json_file(expected_file, exp_lst, FilmEncoder)
+
+
+# if __name__ == '__main__':
+#     write_expected()
