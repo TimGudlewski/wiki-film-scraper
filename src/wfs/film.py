@@ -50,7 +50,7 @@ class Film:
             return
         uls = []
         first_ul_parent = first_ul.parent
-        if first_ul_parent.name == 'td':  # Example case: Caged
+        if first_ul_parent.name == 'td':  # Test case: Caged
             uls.extend(first_ul.find_previous('tr').find_all('ul'))
         else:
             uls.append(first_ul)
@@ -64,7 +64,7 @@ class Film:
                 while footnote_re:
                     li_text = li_text.replace(footnote_re.group(), '').strip()
                     footnote_re = regexes.get_footnote_re(li_text)
-                if '\n' in li_text:  # Example case: The Lady from Shanghai
+                if '\n' in li_text:  # Test case: The Lady from Shanghai
                     li_text = li_text.replace('\n', ' (').strip() + ')'
                 # When accessing the text property of an li tag that includes a nested list,
                 # Beautiful Soup appends the text of its child lis to it, separating them with \n.
@@ -182,41 +182,3 @@ class Film:
                 credit.extend(detail for detail in details if detail not in credit)
             else:
                 setattr(self, label, details)
-
-
-import os, inspect, sys, unittest
-src_dir = os.path.dirname(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))
-project_dir = os.path.dirname(src_dir)
-expected_file = os.path.join(project_dir, 'tests', 'film_test_expected.json')
-sys.path.insert(0, src_dir)
-from wfs import Scraper
-scraper = Scraper(pages_local=True)
-scraper._set_soup('the_deer_hunter.html')
-scraper._set_infobox_set_cast_heading()
-film_kwargs = dict(soup = scraper.soup, cast_heading = scraper.cast_heading, infobox = scraper.infobox)
-film_methods = [item for item in dir(Film) if not item.startswith('__')]
-expected = read_json_file(expected_file)
-
-
-class TestFilm(unittest.TestCase):
-    def test_film_methods(self):
-        for i, method in enumerate(film_methods):
-            film = Film()
-            getattr(film, method)(**film_kwargs)
-            label = next(key for key in film.__dict__ if film.__dict__[key])
-            for j, detail in enumerate(getattr(film, label)):
-                self.assertEqual(expected[i][label][j], detail.__dict__)
-
-
-def write_expected():
-    from wfs import FilmEncoder
-    exp_lst = []
-    for method in film_methods:
-        film = Film()
-        getattr(film, method)(**film_kwargs)
-        exp_lst.append(film)
-    write_json_file(expected_file, exp_lst, FilmEncoder)
-
-
-# if __name__ == '__main__':
-#     write_expected()

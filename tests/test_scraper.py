@@ -50,4 +50,4 @@ qs_kwargs = dict(choices = test_choices)
 gacl_kwargs = dict(cl = True)
 gapl_kwargs = dict(pl = True)
 
-main(**gacl_kwargs)
+main(**cl_kwargs)

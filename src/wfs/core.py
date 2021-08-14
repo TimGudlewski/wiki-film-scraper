@@ -123,7 +123,7 @@ class Scraper:
                 warn(f'No infobox found for choice: {choice}. Continued to next choice.')
                 continue
             film = Film()
-            film.set_titles(self.soup)
+            film.set_titles(soup=self.soup)
             if self.cast_heading:
                 film.set_cast(cast_heading=self.cast_heading)
             else:
