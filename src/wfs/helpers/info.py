@@ -20,6 +20,7 @@ work_format_words = [
     'short story',
     'story',
     'book series',
+    'radio drama',
     'radio series',
     'series',
     'serial',

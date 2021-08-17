@@ -20,7 +20,8 @@ class Film:
         if not summary_tag:
             return
         summary = summary_tag.text.strip()
-        print(summary[:100])
+        if not kwargs.get('hush_sum'):
+            print(summary[:100])
         first_i_tag = summary_tag.find('i')
         if not first_i_tag:
             b_tag = summary_tag.find('b')
