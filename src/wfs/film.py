@@ -1,7 +1,6 @@
 from detail import Detail
 from helpers import regexes, info
 from helpers.general import *
-import unittest
 
 
 class Film:

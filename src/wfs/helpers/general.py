@@ -40,7 +40,7 @@ def format_isodate(num: str):
 
 
 def read_json_file(path):
-    with open(path, encoding='ISO-8859-1') as f:
+    with open(path, encoding='utf-8') as f:
         return json.load(f)
 
 
