@@ -167,6 +167,8 @@ class Film:
             mapping_table = info.labels_mapping_table
             warn('Parameter "mapping_table" must be of type dict. Reverted to default.')
         label_tags = kwargs.get('infobox').find_all('th', class_='infobox-label')
+        if not label_tags:
+            return
         for label_tag in label_tags:
             label = label_tag.text.strip()
             if label not in [*mapping_table]:

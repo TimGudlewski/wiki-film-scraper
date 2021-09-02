@@ -12,6 +12,7 @@ class Work:
         self.years = years or []
         self.creators = creators or []
         self.sources = sources or []
+        self.ft = film_title
         if basis_tag:
             self.extract_attrs(basis_tag, film_title)
 
@@ -59,6 +60,7 @@ class Work:
     
 
     def format_and_creators(self, and_creators, writing):
+        print(self.ft)
         for ac in and_creators:
             ac_idx = self.creators.index(ac)
             ac_split = ac.split(' and ')

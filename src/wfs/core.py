@@ -140,9 +140,9 @@ class Scraper:
             basis_tag = get_details_tag(self.infobox, 'Based on')
             if basis_tag:
                 setattr(film, 'basis', Work(basis_tag, film.titles[0].detail))
-                double_creators = [creator for creator in film.basis.creators if ' and ' in creator]
-                if double_creators:
-                    film.basis.format_double_creators(double_creators, writing)
+                and_creators = [creator for creator in film.basis.creators if ' and ' in creator]
+                if and_creators:
+                    film.basis.format_and_creators(and_creators, writing)
             elif writing:
                 creators = list(filter(lambda writer: any(note in work_format_words for note in writer.notes), writing))
                 if creators:
