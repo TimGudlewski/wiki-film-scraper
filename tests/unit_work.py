@@ -24,10 +24,7 @@ page_filenames_extract = [
     'always.html',
     'too_late_for_tears.html'
 ]
-page_filenames_format = [
-    'caged.html',
-    'crime_wave.html'
-]
+page_filenames_format = ['caged.html', 'crime_wave.html']
 
 
 class TestWorkInit(TestCase):
