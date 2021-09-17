@@ -21,7 +21,6 @@ def main(choices=None, pl=False, cl=False, ri=0, mt=lmt, of=of_default, cf=cf_de
     test_scraper = Scraper(pages_local=pl, pages_dir_path=pd)
     test_scraper.set_choices(choices=choices, choices_local=cl, choices_file_path=cf)
     test_scraper.set_films(results_idx=ri, mapping_table=mt)
-    print(str(test_scraper.films[0].basis))
     test_scraper.save_films(output_file=of)
     end_time = time.monotonic()
     delta = timedelta(seconds=end_time - start_time)
@@ -40,7 +39,8 @@ test_choices_cl = [
     'la nuit du carrefour'
 ]
 test_choices_pl = [
-    'on dangerous ground'
+    'on dangerous ground',
+    'the deer hunter'
 ]
 
 cl_kwargs = dict(choices = test_choices_cl, cl = True)
@@ -49,4 +49,4 @@ qs_kwargs = dict(choices = test_choices)
 gacl_kwargs = dict(cl = True)
 gapl_kwargs = dict(pl = True)
 
-main(**gacl_kwargs)
+main(**pl_kwargs)

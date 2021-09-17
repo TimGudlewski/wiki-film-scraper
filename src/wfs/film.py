@@ -80,7 +80,7 @@ class Film:
             return
         lines = get_details_lines(dates_tag, info.excluded_standard)
         join_parens(lines)
-        setattr(self, 'dates', [])
+        self.dates = []
         for line in lines:
             date = Detail(raw_detail=line)
             is_detail_isodate = False
@@ -158,7 +158,7 @@ class Film:
                 if len(nums) > 1:
                     for num in nums[1:]:
                         length.append(Detail(detail=int(num), note=note))
-        setattr(self, 'length', length)
+        self.length = length
 
 
     def set_infobox_details(self, **kwargs):
