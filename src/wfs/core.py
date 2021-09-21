@@ -152,8 +152,6 @@ class Scraper:
                         formats = [note for creator in creators for note in creator.notes if note in work_format_words]
                         )
                     setattr(film, 'basis', Work(**work_kwargs))
-            film.set_length(infobox=self.infobox)
-            film.set_money_details(infobox=self.infobox)
             self.films.append(film)
 
 

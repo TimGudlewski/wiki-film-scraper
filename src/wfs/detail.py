@@ -1,4 +1,5 @@
-from helpers import regexes, general
+from helpers import regexes, general, info
+from statistics import mean
 
 
 class Detail:
@@ -44,3 +45,45 @@ class Detail:
         elif link and general.index_of(link_text, self.detail) == 0:
             self.role = self.detail.replace(link_text, '').strip()
             self.detail = link_text
+    
+
+    def extract_money_num(self):
+        money_re = regexes.get_money_re(self.detail)
+        if money_re:
+            money = float(money_re.group().replace(',', ''))
+            if 'million' in self.detail.lower():
+                money *= 1000000
+            self.number = int(money)
+    
+
+    def extract_length_num(self):
+        nums = regexes.get_num_re(line=self.detail, all=True)
+        if nums:
+            num = None
+            if len(nums) > 1:
+                num = round(mean(nums))
+                self.notes.append('avg')
+            else:
+                num = nums[0]
+            self.number = num
+    
+
+    def extract_isodate(self):
+        is_detail_isodate = False
+        i = 0
+        while i < len(self.notes):
+            note_isodate_re = regexes.get_isodate_re(self.notes[i])
+            if note_isodate_re:
+                self.detail = note_isodate_re.group()
+                is_detail_isodate = True
+                self.notes.pop(i)
+            else:
+                i += 1
+        if not is_detail_isodate:
+            detail_isodate_re = regexes.get_isodate_re(self.detail)
+            if detail_isodate_re:
+                self.detail = detail_isodate_re.group()
+            else:
+                isodate = general.format_isodate(self.detail)
+                if isodate:
+                    self.detail = isodate

@@ -74,93 +74,6 @@ class Film:
                 self.cast.append(credit)
 
 
-    def set_dates(self, **kwargs):
-        dates_tag = get_details_tag(kwargs.get('infobox'), 'Release date')
-        if not dates_tag:
-            return
-        lines = get_details_lines(dates_tag, info.excluded_standard)
-        join_parens(lines)
-        self.dates = []
-        for line in lines:
-            date = Detail(raw_detail=line)
-            is_detail_isodate = False
-            if date.notes:
-                for i, note in enumerate(date.notes):
-                    note_isodate_re = regexes.get_isodate_re(note)
-                    if note_isodate_re:
-                        date.detail = note_isodate_re.group()
-                        is_detail_isodate = True
-                        date.notes.pop(i)
-            else:
-                detail_isodate_re = regexes.get_isodate_re(date.detail)
-                if detail_isodate_re:
-                    date.detail = detail_isodate_re.group()
-                    is_detail_isodate = True
-            if not is_detail_isodate:
-                month_word = get_elm(info.months, date.detail)
-                if month_word:
-                    month = format_isodate(str(info.months.index(month_word) + 1))
-                    year = day = ''
-                    year_re = regexes.get_year_re(date.detail)
-                    day_re = regexes.get_day_re(date.detail)
-                    if year_re:
-                        year = year_re.group()
-                    if day_re:
-                        day = format_isodate(day_re.group())
-                    date.detail = year + month + day
-            self.dates.append(date)
-
-
-    def set_money_details(self, **kwargs):
-        money_labels = ['Budget', 'Box office']
-        new_money_labels = ['budget', 'sales']
-        money_tags = [get_details_tag(kwargs.get('infobox'), label) for label in money_labels]
-        if not any(money_tags):
-            return
-        for i, tag in enumerate(money_tags):
-            if not tag:
-                continue
-            lines = get_details_lines(tag, info.excluded_standard)
-            join_parens(lines)
-            money_details = []
-            for line in lines:
-                money_detail = Detail(raw_detail=line)
-                money_re = regexes.get_money_re(money_detail.detail)
-                if money_re:
-                    money = float(money_re.group().replace(',', ''))
-                    if 'million' in money_detail.detail.lower():
-                        money *= 1000000
-                    money_detail.notes.append(money_detail.detail.lower().replace(money_re.group(), '').replace('million', '').strip())
-                    money_detail.detail = int(money)
-                money_details.append(money_detail)
-            setattr(self, new_money_labels[i], money_details)
-    
-
-    def set_length(self, **kwargs):
-        length_tag = get_details_tag(kwargs.get('infobox'), 'Running time')
-        lines = get_details_lines(length_tag)
-        join_parens(lines)
-        length = []
-        for line in lines:
-            length_detail_1 = Detail(raw_detail=line)
-            nums = regexes.get_num_re(line=length_detail_1.detail, all=True)
-            if nums:
-                if any(time_unit in length_detail_1.detail for time_unit in ['min', 'mn']):
-                    note = 'min'
-                else:
-                    note = length_detail_1.detail
-                    for num in nums:
-                        note = note.replace(num, '')
-                    note = depunct(note).lower().strip()
-                length_detail_1.notes.append(note)
-                length_detail_1.detail = int(nums[0])
-                length.append(length_detail_1)
-                if len(nums) > 1:
-                    for num in nums[1:]:
-                        length.append(Detail(detail=int(num), note=note))
-        self.length = length
-
-
     def set_infobox_details(self, **kwargs):
         mapping_table = kwargs.get('mapping_table')
         if not mapping_table or type(mapping_table) is not dict:
@@ -175,10 +88,15 @@ class Film:
                 continue
             label = mapping_table[label]
             details_tag = label_tag.find_next('td')
-            lines = get_details_lines(details_tag, info.excluded_standard)
+            lines = get_details_lines(details_tag)
             add_colon_notes(lines)
             join_parens(lines)
-            details = [Detail(raw_detail=line) for line in lines]
+            details = []
+            for line in lines:
+                detail = Detail(raw_detail=line)
+                if label in info.special_methods:
+                    getattr(detail, info.special_methods[label])()
+                details.append(detail)
             credit = getattr(self, label, None)
             if credit:
                 credit.extend(detail for detail in details if detail not in credit)

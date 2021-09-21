@@ -57,3 +57,14 @@ class TestFilm(unittest.TestCase):
         truths.append(self.film.cast[0].detail == "Rita Hayworth" and self.film.cast[0].role == "Elsa \"Rosalie\" Bannister")
         truths.append(self.film.cast[0].notes[0] == "singing voice was dubbed by Anita Kert Ellis" and len(self.film.cast[0].notes) == 1)
         self.assertTrue(all(truths))
+    
+
+    def test_dates(self):
+        self.scraper._set_soup('the_pawnbroker.html')
+        self.scraper._set_infobox_set_cast_heading()
+        self.film.set_dates(infobox=self.scraper.infobox)
+        truths = []
+        truths.append(self.film.dates[0].detail == "1964-06" and self.film.dates[1].detail == "1965-04-20")
+        truths.append(self.film.dates[0].notes[0] == "Berlin FF" and len(self.film.dates[0].notes) == 1)
+        truths.append(self.film.dates[1].notes[0] == "U.S." and len(self.film.dates[1].notes) == 1)
+        self.assertTrue(all(truths))

@@ -1,5 +1,5 @@
-from helpers.regexes import get_footnote_re
-from helpers.info import excluded_standard
+from helpers.regexes import get_footnote_re, get_year_re, get_day_re
+from helpers.info import excluded_standard, months
 from warnings import warn
 import json
 
@@ -33,10 +33,24 @@ def depunct(txt):
     return txt.translate(str.maketrans('', '', punctuation))
 
 
-def format_isodate(num: str):
+def format_isodate_fragment(num: str):
     if len(num) == 1:
         num = '0' + num
     return '-' + num
+
+
+def format_isodate(detail):
+    month_word = get_elm(months, detail)
+    if month_word:
+        month = format_isodate_fragment(str(months.index(month_word) + 1))
+        year = day = ''
+        year_re = get_year_re(detail)
+        day_re = get_day_re(detail)
+        if year_re:
+            year = year_re.group()
+        if day_re:
+            day = format_isodate_fragment(day_re.group())
+        return year + month + day
 
 
 def read_json_file(path):

@@ -41,6 +41,17 @@ labels_mapping_table = {
     'Distributed by': "distribution",
     'Music by': "music",
     'Cinematography': "cinematography",
+    'Running time': "length",
+    'Budget': "budget",
+    'Box office': "sales",
+    'Release date': "dates"
+}
+
+special_methods = {
+    'dates': "extract_isodate",
+    'length': "extract_length_num",
+    'budget': "extract_money_num",
+    'sales': "extract_money_num"
 }
 
 excluded_standard = ['"', ',']
