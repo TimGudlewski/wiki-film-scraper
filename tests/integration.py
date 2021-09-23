@@ -40,7 +40,10 @@ test_choices_cl = [
 ]
 test_choices_pl = [
     'on dangerous ground',
-    'the deer hunter'
+    'the deer hunter',
+    'always',
+    'the lady from shanghai',
+    'the breaking point'
 ]
 
 cl_kwargs = dict(choices = test_choices_cl, cl = True)
@@ -49,4 +52,4 @@ qs_kwargs = dict(choices = test_choices)
 gacl_kwargs = dict(cl = True)
 gapl_kwargs = dict(pl = True)
 
-main(**pl_kwargs)
+main(choices=['touch of evil', 'the lady from shanghai', 'suddenly'], pl=True)

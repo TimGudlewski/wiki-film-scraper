@@ -4,14 +4,6 @@ from warnings import warn
 import json
 
 
-def add_colon_notes(lines):
-    for i, line in enumerate(lines):
-        if line[-1] == ':':
-            note = lines.pop(i)[:-1].lower()
-            for j in range(i, len(lines)):
-                lines[j] += f'({note})'
-
-
 def append_unique(appendants, target, schema, idx, line_type):
     if appendants:
         schema[idx].append(line_type)
@@ -25,6 +17,18 @@ def at_index(idx, in_list):
         return in_list[idx]
     except IndexError:
         pass
+
+
+def spread_notes(lines):
+    i = 0
+    while i < len(lines):
+        if lines[i][-1] == ':':
+            note = lines.pop(i)[:-1].lower()
+            while i < len(lines) and lines[i][-1] != ':':
+                lines[i] += f'({note})'
+                i += 1
+        else:
+            i += 1
 
 
 def depunct(txt):

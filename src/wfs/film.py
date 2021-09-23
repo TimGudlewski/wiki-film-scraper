@@ -45,8 +45,14 @@ class Film:
 
 
     def set_cast(self, **kwargs):
-        first_ul = kwargs.get('cast_heading').find_next('ul')
+        cast_heading = kwargs.get('cast_heading')
+        if cast_heading:
+            first_ul = cast_heading.find_next('ul')
+        else:
+            warn('No cast heading found. Please include "cast_heading" keyword argument when calling "set_cast" film method.')
+            return
         if not first_ul:
+            warn('No "ul" tag found under cast heading.')
             return
         uls = []
         first_ul_parent = first_ul.parent
@@ -78,9 +84,16 @@ class Film:
         mapping_table = kwargs.get('mapping_table')
         if not mapping_table or type(mapping_table) is not dict:
             mapping_table = info.labels_mapping_table
+        elif type(mapping_table) is not dict:
             warn('Parameter "mapping_table" must be of type dict. Reverted to default.')
-        label_tags = kwargs.get('infobox').find_all('th', class_='infobox-label')
+        infobox = kwargs.get('infobox')
+        if infobox:
+            label_tags = infobox.find_all('th', class_='infobox-label')
+        else:
+            warn('No infobox found. Please include "infobox" keyword argument when calling "set_infobox_details" film method.')
+            return
         if not label_tags:
+            warn('No label tags found.')
             return
         for label_tag in label_tags:
             label = label_tag.text.strip()
@@ -89,7 +102,7 @@ class Film:
             label = mapping_table[label]
             details_tag = label_tag.find_next('td')
             lines = get_details_lines(details_tag)
-            add_colon_notes(lines)
+            spread_notes(lines)
             join_parens(lines)
             details = []
             for line in lines:

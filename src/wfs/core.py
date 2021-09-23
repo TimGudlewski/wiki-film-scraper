@@ -134,7 +134,6 @@ class Scraper:
                         film.cast.append(Detail(raw_detail=str(actor)))
                 else:
                     warn(f'Cast could not be set for {film.titles[0].detail}.')
-            film.set_dates(infobox=self.infobox)
             film.set_infobox_details(infobox=self.infobox, mapping_table=mapping_table)
             writing = getattr(film, 'writing', None)
             basis_tag = get_details_tag(self.infobox, 'Based on')

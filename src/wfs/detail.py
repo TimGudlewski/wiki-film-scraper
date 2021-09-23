@@ -61,10 +61,10 @@ class Detail:
         if nums:
             num = None
             if len(nums) > 1:
-                num = round(mean(nums))
+                num = round(mean(int(n) for n in nums))
                 self.notes.append('avg')
             else:
-                num = nums[0]
+                num = int(nums[0])
             self.number = num
     
 
