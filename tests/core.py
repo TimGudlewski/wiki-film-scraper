@@ -9,15 +9,19 @@ from wfs import Scraper
 from wfs.film import Film
 from wfs.detail import Detail
 from wfs.work import Work
+from wfs.helpers.general import get_details_tag
+
+writing_labels = ['Screenplay by', 'Written by', 'Story by']
+writing_labels_mapping_table = dict.fromkeys(writing_labels, "writing")
 
 
-class TestWikiFilm(unittest.TestCase):
+class TestBase(unittest.TestCase):
     def setUp(self) -> None:
-        self.film = Film()
         self.scraper = Scraper(pages_local=True)
+        self.film = Film()
 
 
-    def intra_setup(self, filename, attributes, method, key):
+    def intra_setup_film(self, filename, attributes, method, key):
         for attribute in attributes:
             film_attr = getattr(self.film, attribute, None)
             while film_attr:
@@ -27,3 +31,20 @@ class TestWikiFilm(unittest.TestCase):
             self.scraper._set_infobox_set_cast_heading()
         kwarg = {key: getattr(self.scraper, key)}
         getattr(self.film, method)(**kwarg)
+
+
+    def intra_setup_work(self, wargs=None, filename=None, call_format=False):
+        if not filename:
+            self.work = Work(**wargs)
+        else:
+            self.scraper._set_soup(filename)
+            self.film.set_titles(soup=self.scraper.soup)
+            self.scraper._set_infobox_set_cast_heading()
+            basis_tag = get_details_tag(self.scraper.infobox, 'Based on')
+            self.work = Work(basis_tag, self.film.titles[0].detail)
+            if call_format:
+                and_creators = [creator for creator in self.work.creators if ' and ' in creator]
+                if and_creators:
+                    self.film.set_infobox_details(infobox=self.scraper.infobox, mapping_table=writing_labels_mapping_table)
+                    writing = getattr(self.film, 'writing', None)
+                    self.work.format_and_creators(and_creators, writing)

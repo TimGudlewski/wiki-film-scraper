@@ -52,4 +52,8 @@ qs_kwargs = dict(choices = test_choices)
 gacl_kwargs = dict(cl = True)
 gapl_kwargs = dict(pl = True)
 
-main(choices=['touch of evil', 'the lady from shanghai', 'suddenly'], pl=True)
+main(choices=[
+    'the reckless moment',
+    'scarlet street',
+    'always',
+    'too late for tears', 'caged', 'crime wave'], pl=True)
