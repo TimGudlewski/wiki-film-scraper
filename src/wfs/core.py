@@ -126,7 +126,7 @@ class Scraper:
             film.set_titles(soup=self.soup)
             if self.cast_heading:
                 film.set_cast(cast_heading=self.cast_heading)
-            else:
+            else:  # Example case: La Nuit du Carrefour
                 starring_tag = self.infobox.find('th', string="Starring")
                 if starring_tag:
                     starring_strings = starring_tag.find_next('td').stripped_strings
@@ -142,7 +142,7 @@ class Scraper:
                 and_creators = [creator for creator in film.basis.creators if ' and ' in creator]
                 if and_creators:
                     film.basis.format_and_creators(and_creators, writing)
-            elif writing:
+            elif writing:  # Example case: La Nuit du Carrefour
                 creators = list(filter(lambda writer: any(note in work_format_words for note in writer.notes), writing))
                 if creators:
                     work_kwargs = dict(

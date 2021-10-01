@@ -21,15 +21,25 @@ class TestBase(unittest.TestCase):
         self.film = Film()
 
 
-    def intra_setup_film(self, filename, attributes, method, key):
-        for attribute in attributes:
-            film_attr = getattr(self.film, attribute, None)
-            while film_attr:
-                film_attr.pop()
+    def intra_teardown(self):
+        film_attrs = [item for item in dir(self.film) if not (callable(getattr(self.film, item)) or item.startswith('__'))]
+        for fa in film_attrs:
+            if fa in ['titles', 'cast']:
+                while getattr(self.film, fa):
+                    getattr(self.film, fa).pop()
+            else:
+                delattr(self.film, fa)
+
+
+    def intra_setup_film(self, filename, method, key):
+        self.intra_teardown()
         self.scraper._set_soup(filename)
+        kwarg = {}
         if method != 'set_titles':
             self.scraper._set_infobox_set_cast_heading()
-        kwarg = {key: getattr(self.scraper, key)}
+        else:
+            kwarg.update({'hush_sum': True})
+        kwarg.update({key: getattr(self.scraper, key)})
         getattr(self.film, method)(**kwarg)
 
 
@@ -48,3 +58,16 @@ class TestBase(unittest.TestCase):
                     self.film.set_infobox_details(infobox=self.scraper.infobox, mapping_table=writing_labels_mapping_table)
                     writing = getattr(self.film, 'writing', None)
                     self.work.format_and_creators(and_creators, writing)
+    
+
+    def intra_setup_detail(self, dargs=None, filename=None, call_cast=False, call_infobox=False):
+        if not filename:
+            self.detail = Detail(**dargs)
+        else:
+            self.intra_teardown()
+            self.scraper._set_soup(filename)
+            self.scraper._set_infobox_set_cast_heading()
+            if call_cast:
+                self.film.set_cast(cast_heading=self.scraper.cast_heading)
+            if call_infobox:
+                self.film.set_infobox_details(infobox=self.scraper.infobox)
