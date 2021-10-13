@@ -39,5 +39,5 @@ class TestWork(TestBase):
 
     def test_format(self):
         for i, fn in enumerate(format_filenames):
-            self.intra_setup_work(filename=fn, call_format=True)
+            self.intra_setup_work(filename=fn)
             self.assertListEqual(self.work.creators, format_creators[i])

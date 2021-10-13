@@ -43,10 +43,6 @@ class TestDetailMethods(TestCase):
         detail_expected = 'Paramount Pictures'
         notes_expected = ['via Republic Pictures', 'current']
         self.assertTrue(detail_actual.detail == detail_expected and detail_actual.notes == notes_expected)
-        pargs[0] = 'the_deer_hunter.html'
-        self.intra_setup(*pargs)
-        self.assertTrue(self.film.cast[4].role.startswith("Linda. Prior to The Deer Hunter, Streep was seen briefly in Fred Zinnemann's Julia (1977)"))
-        self.assertEqual(len(self.film.cast[4].notes), 0)
     
 
     def test_split(self):

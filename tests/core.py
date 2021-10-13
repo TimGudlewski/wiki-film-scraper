@@ -9,7 +9,7 @@ from wfs import Scraper
 from wfs.film import Film
 from wfs.detail import Detail
 from wfs.work import Work
-from wfs.helpers.general import get_details_tag
+from wfs.helpers.general import get_details_tag, get_all_attrs
 
 writing_labels = ['Screenplay by', 'Written by', 'Story by']
 writing_labels_mapping_table = dict.fromkeys(writing_labels, "writing")
@@ -22,7 +22,7 @@ class TestBase(unittest.TestCase):
 
 
     def intra_teardown(self):
-        film_attrs = [item for item in dir(self.film) if not (callable(getattr(self.film, item)) or item.startswith('__'))]
+        film_attrs = get_all_attrs(self.film)
         for fa in film_attrs:
             if fa in ['titles', 'cast']:
                 while getattr(self.film, fa):
@@ -31,7 +31,7 @@ class TestBase(unittest.TestCase):
                 delattr(self.film, fa)
 
 
-    def intra_setup_film(self, filename, method, key):
+    def intra_setup_film(self, filename, method, key=None):
         self.intra_teardown()
         self.scraper._set_soup(filename)
         kwarg = {}
@@ -39,25 +39,27 @@ class TestBase(unittest.TestCase):
             self.scraper._set_infobox_set_cast_heading()
         else:
             kwarg.update({'hush_sum': True})
-        kwarg.update({key: getattr(self.scraper, key)})
+        if method == 'set_basis':
+            self.film.set_titles(soup=self.scraper.soup)
+            self.film.set_infobox_details(infobox=self.scraper.infobox)
+            basis_tag = get_details_tag(self.scraper.infobox, 'Based on')
+            kwarg.update({'basis_tag': basis_tag})
+        else:
+            kwarg.update({key: getattr(self.scraper, key)})
         getattr(self.film, method)(**kwarg)
 
 
-    def intra_setup_work(self, wargs=None, filename=None, call_format=False):
+    def intra_setup_work(self, wargs=None, filename=None):
         if not filename:
             self.work = Work(**wargs)
         else:
             self.scraper._set_soup(filename)
             self.film.set_titles(soup=self.scraper.soup)
             self.scraper._set_infobox_set_cast_heading()
+            self.film.set_infobox_details(infobox=self.scraper.infobox)
             basis_tag = get_details_tag(self.scraper.infobox, 'Based on')
-            self.work = Work(basis_tag, self.film.titles[0].detail)
-            if call_format:
-                and_creators = [creator for creator in self.work.creators if ' and ' in creator]
-                if and_creators:
-                    self.film.set_infobox_details(infobox=self.scraper.infobox, mapping_table=writing_labels_mapping_table)
-                    writing = getattr(self.film, 'writing', None)
-                    self.work.format_and_creators(and_creators, writing)
+            self.film.set_basis(basis_tag=basis_tag)
+            self.work = self.film.basis
     
 
     def intra_setup_detail(self, dargs=None, filename=None, call_cast=False, call_infobox=False):

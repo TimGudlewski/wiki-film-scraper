@@ -62,6 +62,10 @@ def read_json_file(path):
         return json.load(f)
 
 
+def get_all_attrs(obj):
+    return [item for item in dir(obj) if not (callable(getattr(obj, item)) or item.startswith('__'))]
+
+
 def get_details_tag(infobox, label):
     label_tag = infobox.find('th', class_='infobox-label', string=label)
     if label_tag:

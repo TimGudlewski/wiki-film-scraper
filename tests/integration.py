@@ -52,4 +52,4 @@ qs_kwargs = dict(choices = test_choices)
 gacl_kwargs = dict(cl = True)
 gapl_kwargs = dict(pl = True)
 
-main(choices=['the seventh victim', 'pushover', 'the pawnbroker', 'night and the city', 'the deer hunter'], pl=True)
+main(**gacl_kwargs)

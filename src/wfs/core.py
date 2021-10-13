@@ -135,22 +135,8 @@ class Scraper:
                 else:
                     warn(f'Cast could not be set for {film.titles[0].detail}.')
             film.set_infobox_details(infobox=self.infobox, mapping_table=mapping_table)
-            writing = getattr(film, 'writing', None)
             basis_tag = get_details_tag(self.infobox, 'Based on')
-            if basis_tag:
-                setattr(film, 'basis', Work(basis_tag, film.titles[0].detail))
-                and_creators = [creator for creator in film.basis.creators if ' and ' in creator]
-                if and_creators:
-                    film.basis.format_and_creators(and_creators, writing)
-            elif writing:  # Example case: La Nuit du Carrefour
-                creators = list(filter(lambda writer: any(note in work_format_words for note in writer.notes), writing))
-                if creators:
-                    work_kwargs = dict(
-                        creators = [creator.detail for creator in creators],
-                        works = [film.titles[0].detail],
-                        formats = [note for creator in creators for note in creator.notes if note in work_format_words]
-                        )
-                    setattr(film, 'basis', Work(**work_kwargs))
+            film.set_basis(basis_tag=basis_tag)
             self.films.append(film)
 
 

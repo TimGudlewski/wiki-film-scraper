@@ -1,4 +1,5 @@
 from detail import Detail
+from work import Work
 from helpers import regexes, info
 from helpers.general import *
 
@@ -115,3 +116,21 @@ class Film:
                 credit.extend(detail for detail in details if detail not in credit)
             else:
                 setattr(self, label, details)
+    
+
+    def set_basis(self, **kwargs):
+        basis_tag = kwargs.get('basis_tag')
+        writing = getattr(self, 'writing', None)
+        if basis_tag:
+            work = Work(basis_tag, self.titles[0].detail)
+            work.format_and_creators(writing)
+            self.basis = work
+        elif writing:  # Example case: La Nuit du Carrefour
+            creators = list(filter(lambda writer: any(note in info.work_format_words for note in writer.notes), writing))
+            if creators:
+                work_kwargs = dict(
+                    creators = [creator.detail for creator in creators],
+                    works = [self.titles[0].detail],
+                    formats = [note for creator in creators for note in creator.notes if note in info.work_format_words]
+                    )
+                self.basis = Work(**work_kwargs)

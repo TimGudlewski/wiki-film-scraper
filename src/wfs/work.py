@@ -59,8 +59,8 @@ class Work:
             self.works.append(film_title)
     
 
-    def format_and_creators(self, and_creators, writing):
-        print(self.ft)
+    def format_and_creators(self, writing):
+        and_creators = [creator for creator in self.creators if ' and ' in creator]
         for ac in and_creators:
             ac_idx = self.creators.index(ac)
             ac_split = ac.split(' and ')
