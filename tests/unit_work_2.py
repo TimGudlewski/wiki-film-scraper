@@ -1,3 +1,4 @@
+# Run this test from the project root directory
 from tests.core import *
 
 format_filenames = ['caged.html', 'crime_wave.html']

@@ -47,20 +47,43 @@ class Film:
 
     def set_cast(self, **kwargs):
         cast_heading = kwargs.get('cast_heading')
-        if cast_heading:
-            first_ul = cast_heading.find_next('ul')
-        else:
-            warn('No cast heading found. Please include "cast_heading" keyword argument when calling "set_cast" film method.')
-            return
-        if not first_ul:
-            warn('No "ul" tag found under cast heading.')
+        cast_ul_1 = cast_heading.find_next('ul')
+        ul_heading = None
+        if cast_ul_1:
+            ul_heading = cast_ul_1.find_previous('span', class_='mw-headline')
+        if ul_heading != cast_heading or not cast_ul_1:
+            cast_table = cast_heading.find_next('table', role='presentation')
+            table_heading = None
+            if cast_table:
+                table_heading = cast_table.find_previous('span', class_='mw-headline')
+            if table_heading != cast_heading or not cast_table:
+                warn('No list or table found under cast heading.')
+                return
+            cast_wtables = cast_table.find_all('table', class_='wikitable')
+            for wtable in cast_wtables:
+                wtable_rows = wtable.find_all('tr')
+                for row in wtable_rows:
+                    row_tds = row.find_all('td')
+                    if not row_tds:
+                        continue
+                    for td in row_tds:
+                        td_italic = td.find('i')
+                        if td_italic:
+                            td_italic.decompose()
+                    actor_detail = Detail(raw_detail=row_tds[1].text.replace('\n', ''), is_actor=True)
+                    role = actor_detail.detail
+                    actor_detail_detail = Detail(raw_detail=row_tds[0].text, is_actor=True)
+                    actor_detail.detail = actor_detail_detail.detail
+                    actor_detail.notes.extend(actor_detail_detail.notes)
+                    setattr(actor_detail, 'role', role)
+                    self.cast.append(actor_detail)
             return
         uls = []
-        first_ul_parent = first_ul.parent
-        if first_ul_parent.name == 'td':  # Test case: Caged
-            uls.extend(first_ul.find_previous('tr').find_all('ul'))
+        cast_ul_parent = cast_ul_1.parent
+        if cast_ul_parent.name == 'td':  # Test case: Caged
+            uls.extend(cast_ul_1.find_previous('tr').find_all('ul'))
         else:
-            uls.append(first_ul)
+            uls.append(cast_ul_1)
         for ul in uls:
             lis = ul.find_all('li', recursive=False)
             # The recursive=False option prevents nested lis from getting their own item in the list, 

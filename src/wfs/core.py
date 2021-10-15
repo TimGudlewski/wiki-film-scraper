@@ -126,7 +126,7 @@ class Scraper:
             film.set_titles(soup=self.soup)
             if self.cast_heading:
                 film.set_cast(cast_heading=self.cast_heading)
-            else:  # Example case: La Nuit du Carrefour
+            if not self.cast_heading or not film.cast:  # Example case: La Nuit du Carrefour
                 starring_tag = self.infobox.find('th', string="Starring")
                 if starring_tag:
                     starring_strings = starring_tag.find_next('td').stripped_strings

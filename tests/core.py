@@ -40,7 +40,7 @@ class TestBase(unittest.TestCase):
         else:
             kwarg.update({'hush_sum': True})
         if method == 'set_basis':
-            self.film.set_titles(soup=self.scraper.soup)
+            self.film.set_titles(soup=self.scraper.soup, hush_sum=True)
             self.film.set_infobox_details(infobox=self.scraper.infobox)
             basis_tag = get_details_tag(self.scraper.infobox, 'Based on')
             kwarg.update({'basis_tag': basis_tag})
@@ -54,7 +54,7 @@ class TestBase(unittest.TestCase):
             self.work = Work(**wargs)
         else:
             self.scraper._set_soup(filename)
-            self.film.set_titles(soup=self.scraper.soup)
+            self.film.set_titles(soup=self.scraper.soup, hush_sum=True)
             self.scraper._set_infobox_set_cast_heading()
             self.film.set_infobox_details(infobox=self.scraper.infobox)
             basis_tag = get_details_tag(self.scraper.infobox, 'Based on')

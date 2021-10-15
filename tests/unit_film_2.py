@@ -1,3 +1,4 @@
+# Run this test from the project root directory
 from tests.core import *
 
 work_attrs_expected = [["novel"], ["1938"], ["Raymond Sherwood King"], ["If I Die Before I Wake"], []]

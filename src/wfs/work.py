@@ -3,7 +3,7 @@ from helpers import regexes, general, info
 
 class Work:
     fycws_keys = ['formats', 'years', 'creators', 'works', 'sources']
-    unwanted_untyped_lines = ['by', 'in', 'the']
+    unwanted_untyped_lines = ['by', 'in', 'the', 'and', 'or']
 
 
     def __init__(self, basis_tag=None, film_title=None, works=None, formats=None, years=None, creators=None, sources=None) -> None:
@@ -32,6 +32,7 @@ class Work:
         lines = general.get_details_lines(basis_tag, info.excluded_basis)
         lines_schema = {i: [] for i in range(len(lines))}
         for j, line in enumerate(lines):
+            print(line)
             line_fycws = {key: [] for key in self.fycws_keys}
             prev_line = general.get_prev_line(j, lines)
             italic = general.get_elm(italics, line)
@@ -41,14 +42,17 @@ class Work:
                 italic = general.remove_parens(italic)
                 if general.is_preceded_by(prev_line, ' in') or quotes:
                     line_fycws['sources'].append(italic)
-                elif italic not in info.work_format_words:
+                elif italic not in info.work_format_words + ['and', 'or']:
                     line_fycws['works'].append(italic)
             if quote:
                 line_fycws['works'].append(quote)
             line_fycws['formats'] = general.get_elms(info.work_format_words, line)
             line_fycws['years'] = regexes.get_year_re(line, all=True)
-            if line[:3].lower() == 'by ':
+            if line.lower().startswith('by '):
                 line_fycws['creators'].append(line[3:])
+            if ' by ' in line.lower():
+                bindex = line.index(' by ')
+                line_fycws['creators'].append(line[bindex + 4:])
             if general.is_preceded_by(prev_line, ' by'):
                 line_fycws['creators'].append(line)
             for key in self.fycws_keys:
