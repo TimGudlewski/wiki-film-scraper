@@ -3,7 +3,7 @@ from helpers import regexes, general, info
 
 class Work:
     fycws_keys = ['formats', 'years', 'creators', 'works', 'sources']
-    unwanted_untyped_lines = ['by', 'in', 'the', 'and', 'or']
+    noncreator_uncategorized_lines = ['by', 'in', 'the', 'and', 'or']
 
 
     def __init__(self, basis_tag=None, film_title=None, works=None, formats=None, years=None, creators=None, sources=None) -> None:
@@ -32,8 +32,7 @@ class Work:
         lines = general.get_details_lines(basis_tag, info.excluded_basis)
         lines_schema = {i: [] for i in range(len(lines))}
         for j, line in enumerate(lines):
-            print(line)
-            line_fycws = {key: [] for key in self.fycws_keys}
+            line_fycws = {key: [] for key in self.fycws_keys}  # This dictionary tracks all the info in the current line that gets categorized as each work attribute. The contents of the dictionary gets appended to the appropriate work attributes (if it is not duplicative) at the end of each loop iteration. Uncategorized lines (other than noncreator_uncategorized_lines) get categorized as creators after the whole loop finishes.
             prev_line = general.get_prev_line(j, lines)
             italic = general.get_elm(italics, line)
             quote = general.get_elm(quotes, line)
@@ -47,7 +46,7 @@ class Work:
             if quote:
                 line_fycws['works'].append(quote)
             line_fycws['formats'] = general.get_elms(info.work_format_words, line)
-            line_fycws['years'] = regexes.get_year_re(line, all=True)
+            line_fycws['years'] = regexes.get_year_re(line, find_all=True)
             if line.lower().startswith('by '):
                 line_fycws['creators'].append(line[3:])
             if ' by ' in line.lower():
@@ -56,9 +55,13 @@ class Work:
             if general.is_preceded_by(prev_line, ' by'):
                 line_fycws['creators'].append(line)
             for key in self.fycws_keys:
-                general.append_unique(line_fycws[key], getattr(self, key), lines_schema, j, key)
-        untyped_lines = [lines[key] for key in lines_schema if not lines_schema[key] and lines[key] not in self.unwanted_untyped_lines]
-        self.creators.extend(untyped_lines)  # Creator is the only work detail type without something concrete (quotes, italics, enum list, regex) to define it
+                if line_fycws[key]:
+                    lines_schema[j].append(key)
+                    for item in line_fycws[key]:
+                        if item not in getattr(self, key):
+                            getattr(self, key).append(item)
+        uncategorized_lines = [lines[key] for key in lines_schema if not lines_schema[key] and lines[key] not in self.noncreator_uncategorized_lines]
+        self.creators.extend(uncategorized_lines)  # Creator is the only work detail type without something concrete (quotes, italics, enum list, regex) to define it
         if not self.works:
             self.works.append(film_title)
     

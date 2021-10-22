@@ -32,8 +32,11 @@ def get_num_re(line: str, as_line=False, all=False):
         return re.search(ex, line)
 
 
-def get_parens_re(line: str, start=False, end=False):
-    ex = r'\((.+?)\)'
+def get_parens_re(line: str, start=False, end=False, with_period=False):
+    if with_period:
+        ex = r'\(([^\)]+)\)\.'
+    else:
+        ex = r'\(([^\)]+)\)'
     if start:
         return re.match(ex, line)
     elif end:
@@ -50,9 +53,9 @@ def get_quote_re(line: str, all=False):
         return re.search(ex, line)
 
 
-def get_year_re(line: str, all=False, as_line=False):
+def get_year_re(line: str, find_all=False, as_line=False):
     ex = r'\d{4,4}'
-    if all:
+    if find_all:
         return re.findall(ex, line)
     elif as_line:
         return re.match(ex + anchor, line)
