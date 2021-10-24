@@ -137,6 +137,31 @@ def remove_parens(line: str) -> str:
     return line
 
 
+def remove_footnotes(li_txt: str) -> str:
+    footnote_re = get_footnote_re(li_txt)
+    while footnote_re:
+        li_txt = li_txt.replace(footnote_re.group(), '').strip()
+        footnote_re = get_footnote_re(li_txt)
+    return li_txt
+
+
+def split_actor(li_txt: str, link):
+        dividers = [' as ', ' - ', ' – ']
+        divider = get_elm(dividers, li_txt)
+        if divider:
+            divider_idx = li_txt.index(divider)
+            role_idx = divider_idx + len(divider)
+            role = li_txt[role_idx:]
+            name = li_txt[:divider_idx]
+        elif link and li_txt.startswith(link.text):
+            role = li_txt[len(link.text):].strip()
+            name = link.text
+        else:
+            name = li_txt
+            role = ''
+        return name, role
+
+
 def write_json_file(output_file: str, data, encoder):
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, cls=encoder)

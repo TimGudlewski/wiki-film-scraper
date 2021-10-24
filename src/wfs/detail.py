@@ -21,40 +21,24 @@ class Detail:
             if not raw_tup[0]:
                 continue
             raw_val, raw_type = raw_tup
-            prelim_parens_re = regexes.get_parens_re(raw_val, with_period=True)
-            if prelim_parens_re:
-                print(prelim_parens_re)
-                parens_re = regexes.get_parens_re(raw_val)
+            period_parens_re = regexes.get_parens_re(raw_val, with_period=True)
+            # Some actor roles contain parentheticals beyond the first sentence which would not make sense to designate as notes. Test case: The Deer Hunter.
+            if period_parens_re:
+                parens_re = period_parens_re
             else:
                 parens_re = regexes.get_parens_re(raw_val, end=True)
             notes = []
             while parens_re:
                 parens = parens_re.group(1).strip()
-                if print_param:
-                    print(parens)
                 notes.insert(0, parens)
-                raw_val = raw_val[:parens_re.start()].strip() + raw_val[parens_re.end():]
-                if prelim_parens_re:
+                if period_parens_re:
+                    raw_val = raw_val[:parens_re.start()].strip() + raw_val[parens_re.end() - 1:]
                     break
+                else:
+                    raw_val = raw_val[:parens_re.start()].strip() + raw_val[parens_re.end():]
                 parens_re = regexes.get_parens_re(raw_val, end=True)
             self.notes.extend(notes)
             setattr(self, raw_type, raw_val)
-
-
-    def split_actor_detail(self, li):
-        dividers = [' as ', ' - ', ' – ']
-        divider = general.get_elm(dividers, self.detail)
-        link = li.find('a')
-        if link:
-            link_text = link.text.strip()
-        if divider:
-            divider_idx = self.detail.index(divider)
-            role_idx = divider_idx + len(divider)
-            self.role = self.detail[role_idx:]
-            self.detail = self.detail[:divider_idx]
-        elif link and general.index_of(link_text, self.detail) == 0:
-            self.role = self.detail.replace(link_text, '').strip()
-            self.detail = link_text
 
 
     def remove_year_notes(self):

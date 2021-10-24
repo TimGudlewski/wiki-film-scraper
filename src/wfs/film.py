@@ -60,17 +60,13 @@ class Film:
                 li_class = li.attrs.get('class')
                 if li_class and li_class[0] == 'mw-empty-elt':  # Test case: The Chase
                     continue
-                li_text = li.text.strip()
-                footnote_re = regexes.get_footnote_re(li_text)
-                while footnote_re:
-                    li_text = li_text.replace(footnote_re.group(), '').strip()
-                    footnote_re = regexes.get_footnote_re(li_text)
+                li_text = remove_footnotes(li.text.strip())
                 if '\n' in li_text:  # Test case: The Lady from Shanghai
                     li_text = li_text.replace('\n', ' (').strip() + ')'
                     # When accessing the text property of an li tag that includes a nested list, Beautiful Soup appends the text of its child lis to it, separating them with \n. The operation above should enclose the text of a nested li in parens, which will then be converted into a note.
-                actor_detail = Detail(raw_detail=li_text)
+                name, role = split_actor(li_text, li.find('a'))
+                actor_detail = Detail(raw_detail=name, raw_role=role)
                 actor_detail.remove_year_notes()
-                actor_detail.split_actor_detail(li)
                 self.cast.append(actor_detail)
 
 
@@ -88,7 +84,8 @@ class Film:
                     td_italic = td.find('i')
                     if td_italic and td_italic.text != td.text:
                         td_italic.decompose()  # To eliminate extraneous words such as "with" and "introducing," which appear in italics in the Pushover cast table
-                    tds_clean.append(td.text.replace('\n', '').strip())
+                    td_text = remove_footnotes(td.text.replace('\n', '').strip())
+                    tds_clean.append(td_text)
                 name, role = tds_clean[:2]
                 actor_detail = Detail(raw_detail=name, raw_role=role)
                 actor_detail.remove_year_notes()
