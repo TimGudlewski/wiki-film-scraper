@@ -26,12 +26,16 @@ class TestFilm(TestBase):
         self.assertListEqual(self.film.titles[1].notes, ["page", "1954 film"])
     
 
-    def test_cast(self):
+    def test_cast_ul(self):
         # Uls in a table
-        pargs = ['caged.html', 'set_cast', 'cast_heading']
+        pargs = ['caged.html', 'set_cast_ul']
         self.intra_setup_film(*pargs)
         self.assertEqual(self.film.cast[6].detail, "Jan Sterling")
         self.assertEqual(self.film.cast[6].role, "Jeta Kovsky aka \"Smoochie\"")
+        self.assertEqual(len(self.film.cast), 12)
+        # Empty lis skipped
+        pargs[0] = 'the_chase.html'
+        self.intra_setup_film(*pargs)
         self.assertEqual(len(self.film.cast), 12)
         # Nested lis
         pargs[0] = 'the_lady_from_shanghai.html'
@@ -39,6 +43,15 @@ class TestFilm(TestBase):
         self.assertEqual(self.film.cast[0].detail, "Rita Hayworth")
         self.assertEqual(self.film.cast[0].role, "Elsa \"Rosalie\" Bannister")
         self.assertListEqual(self.film.cast[0].notes, ["singing voice was dubbed by Anita Kert Ellis"])
+    
+
+    def test_cast_table(self):
+        pargs = ['pushover.html', 'set_cast_table']
+        self.intra_setup_film(*pargs)
+        self.assertEqual(self.film.cast[0].detail, "Fred MacMurray")
+        self.assertListEqual(self.film.cast[0].notes, [])
+        self.assertEqual(self.film.cast[0].role, "Paul Sheridan")
+        self.assertEqual(len(self.film.cast), 17)
     
 
     def test_infobox(self):

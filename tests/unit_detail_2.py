@@ -27,17 +27,7 @@ class TestDetail(TestBase):
         self.intra_setup_detail(filename='the_deer_hunter.html', call_cast=True)
         self.assertTrue(self.film.cast[4].role.startswith("Linda. Prior to The Deer Hunter, Streep was seen briefly in Fred Zinnemann's Julia (1977)"))
         self.assertListEqual(self.film.cast[4].notes, [])
-    
 
-    def test_split(self):
-        self.intra_setup_detail(filename='night_and_the_city.html', call_cast=True)
-        self.assertEqual(self.film.cast[1].detail, 'Gene Tierney')
-        self.assertEqual(self.film.cast[1].role, 'Mary Bristol')
-        self.assertListEqual(self.film.cast[1].notes, ['singing voice dubbed by Maudie Edwards'])
-        self.assertEqual(self.film.cast[-1].detail, 'Adelaide Hall')
-        self.assertListEqual(self.film.cast[-1].notes, ['scenes cut from the final edit'])
-        self.assertEqual(self.film.cast[-1].role, '')
-    
 
     def test_dates(self):
         self.intra_setup_detail(filename='the_pawnbroker.html', call_infobox=True)

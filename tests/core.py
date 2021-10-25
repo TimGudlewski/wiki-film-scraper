@@ -44,6 +44,9 @@ class TestBase(unittest.TestCase):
             self.film.set_infobox_details(infobox=self.scraper.infobox)
             basis_tag = get_details_tag(self.scraper.infobox, 'Based on')
             kwarg.update({'basis_tag': basis_tag})
+        elif method.startswith('set_cast'):
+            first_ul, cast_table = self.scraper._set_cast_setup()
+            kwarg.update({'first_ul': first_ul, 'cast_table': cast_table})
         else:
             kwarg.update({key: getattr(self.scraper, key)})
         getattr(self.film, method)(**kwarg)
@@ -70,6 +73,7 @@ class TestBase(unittest.TestCase):
             self.scraper._set_soup(filename)
             self.scraper._set_infobox_set_cast_heading()
             if call_cast:
-                self.film.set_cast(cast_heading=self.scraper.cast_heading)
+                first_ul, cast_table = self.scraper._set_cast_setup()
+                self.film.set_cast_ul(first_ul=first_ul)
             if call_infobox:
                 self.film.set_infobox_details(infobox=self.scraper.infobox)
