@@ -36,9 +36,9 @@ class Work:
             prev_line = general.get_prev_line(j, lines)
             italic = general.get_elm(italics, line)
             quote = general.get_elm(quotes, line)
-            line = general.remove_parens(line)
+            line = general.remove_enclosures(line, ['(', ')'])
             if italic:
-                italic = general.remove_parens(italic)
+                italic = general.remove_enclosures(italic, ['(', ')'])
                 if general.is_preceded_by(prev_line, ' in') or quotes:
                     line_fycws['sources'].append(italic)
                 elif italic not in info.work_format_words + ['and', 'or']:

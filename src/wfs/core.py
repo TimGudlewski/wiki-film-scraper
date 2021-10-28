@@ -9,6 +9,7 @@ from film import Film
 from helpers.exceptions import ChoicesError, PagesError
 from detail import Detail
 from helpers.info import headers, labels_mapping_table
+from helpers.regexes import get_parens_re
 
 wfs_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
@@ -91,10 +92,44 @@ class Scraper:
     def _set_infobox_set_cast_heading(self):
         self.infobox = self.soup.find('table', class_='infobox vevent')
         self.cast_heading = self.soup.find(id='Cast')
-        film_version_section = self.soup.find(id='Film_version')
+        film_version_section = self.soup.find(id='Film_version')  # Test case: Requiem for a Heavyweight (Page changed online, film version now gone)
         if film_version_section:
             self.infobox = film_version_section.find_next('table', class_='infobox vevent')
             self.cast_heading = film_version_section.find_next('span', string='Cast')
+
+
+    def _set_titles_setup(self, **kwargs):
+        summary_tag = self.soup.find('p', class_='')
+        summary_title = None
+        alts = []
+        if summary_tag:
+            summary_text = summary_tag.text
+            if not kwargs.get('hush_sum'):
+                if len(summary_text) > 100:
+                    print(summary_text[:100])
+                else:
+                    print(summary_text)
+            title_tags = summary_tag.find_all(['i', 'b'])
+            if title_tags:
+                title_tags_text = [title_tag.text for title_tag in title_tags]
+                for i, title_tag_text in enumerate(title_tags_text):
+                    if summary_text.startswith(title_tag_text):
+                        summary_title_idx = i
+                        summary_title = title_tag_text
+                        break
+                if summary_title and len(summary_text) > len(summary_title):
+                    parens_re = get_parens_re(summary_text[len(summary_title) + 1:], start=True)
+                    if parens_re and len(title_tags_text) > summary_title_idx + 1:
+                        parens = parens_re.group()
+                        for alt_tag_text in title_tags_text[summary_title_idx + 1:]:
+                            if alt_tag_text != summary_title and alt_tag_text not in alts and alt_tag_text in parens:
+                                alts.append(alt_tag_text)
+            if not summary_title:
+                if len(summary_text) > 50:
+                    summary_title = summary_text[:50]
+                else:
+                    summary_title = summary_text
+        return summary_title, alts
 
 
     def _set_cast_setup(self):
@@ -126,7 +161,8 @@ class Scraper:
                 warn(f'No infobox found for choice: {choice}. Continued to next choice.')
                 continue
             film = Film()
-            film.set_titles(soup=self.soup)
+            summary_title, alts = self._set_titles_setup()
+            film.set_titles(summary_title=summary_title, alts=alts, page_title=self.soup.title.text)
             first_ul, cast_table = self._set_cast_setup()
             if first_ul:
                 film.set_cast_ul(first_ul=first_ul)

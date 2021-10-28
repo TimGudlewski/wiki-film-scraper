@@ -11,38 +11,20 @@ class Film:
 
 
     def set_titles(self, **kwargs):
-        soup = kwargs.get('soup')
-        page_title = soup.title.text
+        summary_title = kwargs.get('summary_title')
+        alts = kwargs.get('alts')
+        page_title = kwargs.get('page_title')
+        titles = []
         if page_title.endswith(' - Wikipedia'):
             page_title = page_title[:-12]
         self.titles.append(Detail(raw_detail=page_title, note='page'))
-        summary_tag = soup.find('p', class_='')
-        if not summary_tag:
-            return
-        summary = summary_tag.text.strip()
-        if not kwargs.get('hush_sum'):
-            print(summary[:100])
-        first_i_tag = summary_tag.find('i')
-        if not first_i_tag:
-            b_tag = summary_tag.find('b')
-            if b_tag and b_tag.text in summary[:50]:
-                self.titles.append(Detail(detail=b_tag.text.strip(), note='bold'))
-            else:
-                self.titles.append(Detail(detail=summary[:50], note='summary'))
-            return
-        main_title = first_i_tag.text.strip()
-        self.titles.insert(0, Detail(detail=main_title, note='main'))
-        main_title_parens_re = regexes.get_parens_re(summary[len(main_title) + 1:], start=True)
-        if main_title_parens_re:
-            main_title_parens = main_title_parens_re.group()
-            next_i_tag = first_i_tag.find_next('i')
-            if next_i_tag:
-                next_i = next_i_tag.text.strip()
-                while next_i in main_title_parens:
-                    self.titles.append(Detail(detail=next_i, note='alt'))
-                    main_title_parens = main_title_parens.replace(next_i, '')
-                    next_i_tag = next_i_tag.find_next('i')
-                    next_i = next_i_tag.text.strip()
+        if summary_title:
+            for title in [summary_title] + alts:
+                titles.append(remove_enclosures(remove_footnotes(title).strip(), ['"', '"']))
+            self.titles.append(Detail(detail=titles[0], note='summary'))
+            if len(titles) > 1:
+                for alt_title in titles[1:]:
+                    self.titles.append(Detail(detail=alt_title, note='alt'))
 
 
     def set_cast_ul(self, **kwargs):
@@ -96,7 +78,7 @@ class Film:
         mapping_table = kwargs.get('mapping_table')
         if not mapping_table or type(mapping_table) is not dict:
             mapping_table = info.labels_mapping_table
-        elif type(mapping_table) is not dict:
+        if mapping_table and type(mapping_table) is not dict:
             warn('Parameter "mapping_table" must be of type dict. Reverted to default.')
         infobox = kwargs.get('infobox')
         label_tags = infobox.find_all('th', class_='infobox-label')
@@ -141,6 +123,7 @@ class Film:
                 work_kwargs = dict(
                     creators = [creator.detail for creator in creators],
                     works = [self.titles[0].detail],
+                    film_title = [self.titles[0].detail],
                     formats = [note for creator in creators for note in creator.notes if note in info.work_format_words]
                     )
                 self.basis = Work(**work_kwargs)

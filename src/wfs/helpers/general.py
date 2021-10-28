@@ -2,13 +2,13 @@ from helpers.regexes import get_footnote_re, get_year_re, get_day_re
 from helpers.info import excluded_standard, months
 from warnings import warn
 import json
-from typing import List
+from typing import List, Union
 from collections.abc import Sequence
 
 
-def at_index(idx: int, in_list: Sequence):
+def at_index(idx: int, list_or_str: Union[Sequence, str]):
     try:
-        return in_list[idx]
+        return list_or_str[idx]
     except IndexError:
         pass
 
@@ -129,11 +129,9 @@ def join_parens(lines: Sequence[str]):
         i += 1
 
 
-def remove_parens(line: str) -> str:
-    if line[0] == '(':
-        line = line[1:]
-    if line[-1] == ')':
-        line = line[:-1]
+def remove_enclosures(line: str, encs: Sequence[str]) -> str:
+    if line[0] == encs[0] and line[-1] == encs[1]:
+        line = line[1:-1]
     return line
 
 

@@ -31,33 +31,45 @@ class TestBase(unittest.TestCase):
                 delattr(self.film, fa)
 
 
-    def intra_setup_film(self, filename, method, key=None):
+    def intra_setup_film(self, filename):
         self.intra_teardown()
         self.scraper._set_soup(filename)
-        kwarg = {}
-        if method != 'set_titles':
-            self.scraper._set_infobox_set_cast_heading()
-        else:
-            kwarg.update({'hush_sum': True})
-        if method == 'set_basis':
-            self.film.set_titles(soup=self.scraper.soup, hush_sum=True)
-            self.film.set_infobox_details(infobox=self.scraper.infobox)
-            basis_tag = get_details_tag(self.scraper.infobox, 'Based on')
-            kwarg.update({'basis_tag': basis_tag})
-        elif method.startswith('set_cast'):
-            first_ul, cast_table = self.scraper._set_cast_setup()
-            kwarg.update({'first_ul': first_ul, 'cast_table': cast_table})
-        else:
-            kwarg.update({key: getattr(self.scraper, key)})
-        getattr(self.film, method)(**kwarg)
+        self.scraper._set_infobox_set_cast_heading()
+
+
+    def intra_setup_film_titles(self, filename):
+        self.intra_setup_film(filename)
+        summary_title, alts = self.scraper._set_titles_setup(hush_sum=True)
+        page_title = self.scraper.soup.title.text
+        self.film.set_titles(summary_title=summary_title, alts=alts, page_title=page_title)
+    
+
+    def intra_setup_film_cast(self, filename, method):
+        self.intra_setup_film(filename)
+        first_ul, cast_table = self.scraper._set_cast_setup()
+        getattr(self.film, method)(first_ul=first_ul, cast_table=cast_table)
+    
+
+    def intra_setup_film_infobox(self, filename, mapping_table=None):
+        self.intra_setup_film(filename)
+        self.film.set_infobox_details(infobox=self.scraper.infobox, mapping_table=mapping_table)
+
+
+    def intra_setup_film_basis(self, filename):
+        self.intra_setup_film(filename)
+        self.film.set_titles(page_title=self.scraper.soup.title.text)
+        self.film.set_infobox_details(infobox=self.scraper.infobox)
+        basis_tag = get_details_tag(self.scraper.infobox, 'Based on')
+        self.film.set_basis(basis_tag=basis_tag)
 
 
     def intra_setup_work(self, wargs=None, filename=None):
         if not filename:
             self.work = Work(**wargs)
         else:
+            self.intra_teardown()
             self.scraper._set_soup(filename)
-            self.film.set_titles(soup=self.scraper.soup, hush_sum=True)
+            self.film.set_titles(page_title=self.scraper.soup.title.text)
             self.scraper._set_infobox_set_cast_heading()
             self.film.set_infobox_details(infobox=self.scraper.infobox)
             basis_tag = get_details_tag(self.scraper.infobox, 'Based on')
@@ -73,7 +85,7 @@ class TestBase(unittest.TestCase):
             self.scraper._set_soup(filename)
             self.scraper._set_infobox_set_cast_heading()
             if call_cast:
-                first_ul, cast_table = self.scraper._set_cast_setup()
+                first_ul, _ = self.scraper._set_cast_setup()
                 self.film.set_cast_ul(first_ul=first_ul)
             if call_infobox:
                 self.film.set_infobox_details(infobox=self.scraper.infobox)

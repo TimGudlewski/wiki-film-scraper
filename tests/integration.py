@@ -52,4 +52,4 @@ qs_kwargs = dict(choices = test_choices)
 gacl_kwargs = dict(cl = True)
 gapl_kwargs = dict(pl = True)
 
-main(choices=['pushover'], pl=True)
+main(choices=['la nuit du carrefour'], pl=True)
